@@ -589,19 +589,16 @@ export default {
       const vm = this
       vm.isloaded = false
       await Promise.all([
-        vm.fetchAd(),
+        vm.fetchAd().then(() => {
+          vm.marketPriceLoading = !vm.marketPrice
+          return Promise.all([
+            vm.fetchAdOwnerPeerData(),
+            vm.ad?.fiat_currency ? vm.fetchArbiters() : Promise.resolve(),
+            vm.fetchMarketPrice()
+          ])
+        }),
         vm.$store.dispatch('ramp/fetchFeatureToggles')
       ])
-      await vm.fetchAdOwnerPeerData()
-      // Only fetch arbiters if ad was successfully loaded with fiat_currency
-      if (vm.ad && vm.ad.fiat_currency) {
-        await vm.fetchArbiters()
-      }
-      // Seed the market price over REST: the market-price socket only pushes on
-      // price ticks, so waiting for it leaves the price percentage pending for
-      // minutes, or forever while the price is unchanged.
-      vm.marketPriceLoading = !vm.marketPrice
-      await vm.fetchMarketPrice()
       // Websocket subscriptions require fiat currency symbol
       vm.setupWebSocket()
       vm.isloaded = true

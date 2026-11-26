@@ -321,10 +321,14 @@ export function fetchPaymentTypes (context, { currency = null }) {
         resolve(paymentTypes)
       })
       .catch(error => {
-        if (error.response) {
-          console.error('Failed to fetch payment types:', error.response)
-        } else {
-          console.error('Failed to fetch payment types:', error)
+        const canceled = error?.code === 'ERR_CANCELED' ||
+          (error?.code === 'ECONNABORTED' && error?.message === 'Request aborted')
+        if (!canceled) {
+          if (error.response) {
+            console.error('Failed to fetch payment types:', error.response)
+          } else {
+            console.error('Failed to fetch payment types:', error)
+          }
         }
         reject(error)
       })

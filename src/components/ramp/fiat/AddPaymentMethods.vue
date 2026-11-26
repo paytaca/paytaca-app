@@ -315,12 +315,11 @@ export default {
   async mounted () {
     const vm = this
     if (vm.type === 'Profile') {
+      if (!vm.embedded) bus.emit('hide-menu')
       await vm.fetchFiatCurrency()
-    }
-    await vm.fetchPaymentTypes()
-    if (vm.type === 'Profile') {
       await vm.fetchAllPaymentMethodsProfile()
     } else {
+      await vm.fetchPaymentTypes()
       await vm.fetchPaymentMethods()
     }
     switch (vm.type) {
@@ -331,9 +330,6 @@ export default {
         vm.paymentMethods = vm.currentPaymentMethods
         vm.selectedMethods = vm.currentPaymentMethods
         vm.validatePaymentMethods()
-        break
-      case 'Profile':
-        if (!vm.embedded) bus.emit('hide-menu')
         break
     }
     this.isloaded = true
@@ -404,11 +400,6 @@ export default {
   watch: {
     selectedCurrency () {
       this.fetchPaymentMethods()
-    },
-    fiatOption (val) {
-      if (this.type === 'Profile' && Array.isArray(val) && val.length > 0) {
-        this.fetchAllPaymentMethodsProfile()
-      }
     }
   },
   methods: {

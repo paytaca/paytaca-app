@@ -2,7 +2,7 @@
     <HeaderNav :title="`P2P Ramp`" :backnavpath="getBackNavigationPath" class="header-nav" />
     
     <!-- Skeleton Loader -->
-    <div v-if="!isloaded" class="text-bow order-page-container" :class="getDarkModeClass(darkMode)">
+    <div v-if="!orderLoaded" class="text-bow order-page-container" :class="getDarkModeClass(darkMode)">
       <!-- Order Header Skeleton -->
       <div class="skeleton-header">
         <q-skeleton type="text" width="150px" height="20px" class="q-mb-xs" style="margin: 0 auto;" />
@@ -42,7 +42,7 @@
       </div>
     </div>
 
-    <div v-if="isloaded" class="text-bow order-page-container" :class="getDarkModeClass(darkMode)">
+    <div v-if="orderLoaded" class="text-bow order-page-container" :class="getDarkModeClass(darkMode)">
       <!-- Order Header -->
       <div class="order-header" :class="getDarkModeClass(darkMode)">
         <div class="order-title">{{ headerTitle }}</div>
@@ -59,11 +59,11 @@
             class="order-tab-btn"
             :class="[
               darkMode ? 'dark' : '',
-              activeTab === 'details' ? 'active-tab-btn' : '',
+              selectedTab === 'details' ? 'active-tab-btn' : '',
               `theme-${theme}`
             ]"
-            :style="activeTab === 'details' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-            @click="activeTab = 'details'"
+            :style="selectedTab === 'details' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            @click="selectTab('details')"
           >
             {{ $t('Details', {}, 'Details') }}
           </button>
@@ -71,11 +71,12 @@
             class="order-tab-btn"
             :class="[
               darkMode ? 'dark' : '',
-              activeTab === 'history' ? 'active-tab-btn' : '',
+              selectedTab === 'history' ? 'active-tab-btn' : '',
               `theme-${theme}`
             ]"
-            :style="activeTab === 'history' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-            @click="activeTab = 'history'"
+            :style="selectedTab === 'history' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            :disabled="!isloaded"
+            @click="selectTab('history')"
           >
             {{ $t('History', {}, 'History') }}
             <q-badge v-if="order?.has_unread_status" color="red" floating rounded />
@@ -85,11 +86,12 @@
             class="order-tab-btn"
             :class="[
               darkMode ? 'dark' : '',
-              activeTab === 'chat' ? 'active-tab-btn' : '',
+              selectedTab === 'chat' ? 'active-tab-btn' : '',
               `theme-${theme}`
             ]"
-            :style="activeTab === 'chat' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-            @click="activeTab = 'chat'"
+            :style="selectedTab === 'chat' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            :disabled="!isloaded"
+            @click="selectTab('chat')"
           >
             {{ $t('Chat', {}, 'Chat') }}
             <q-badge v-if="isChatEnabled && unreadChatCount > 0" color="red" floating rounded>
@@ -102,7 +104,7 @@
       <!-- Tab Panels -->
       <q-tab-panels
         v-model="activeTab"
-        animated
+        keep-alive
         :style="`height: ${scrollHeight}px`"
         class="order-tab-panels"
         :class="getDarkModeClass(darkMode)"
@@ -113,17 +115,23 @@
             <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshPage">
             <div class="q-mx-md q-px-sm q-mb-sm">
             <TradeInfoCard
+              v-if="ad || order?.ad"
               :key="tradeInfoCardKey"
               :order="order"
-              :ad="ad"
+              :ad="ad || order?.ad"
               :counterparty-peer-data="counterpartyPeerData"
               type="order"
               @view-ad="showAdSnapshot=true"
               @view-peer="onViewPeer"
               @view-reviews="showReviews=true"/>
           </div>
-          <div v-if="!paymentDetailsReminderRequired" class="component-wrapper">
+          <div v-if="!isloaded" class="q-pa-md" role="status" :aria-label="$t('Loading', {}, 'Loading')">
+            <q-skeleton type="rect" height="120px" class="br-15 q-mb-md" />
+            <q-skeleton type="rect" height="50px" class="br-15" />
+          </div>
+          <div v-if="isloaded && !paymentDetailsReminderRequired" class="component-wrapper">
           <EscrowTransfer
+            v-model:contract-info-open="contractInfoOpen"
             ref="escrowTransferRef"
             v-if="state === 'escrow-bch'"
             :key="escrowTransferKey"
@@ -207,7 +215,7 @@
         </q-tab-panel>
 
         <!-- CHAT Tab -->
-        <q-tab-panel v-if="showChatTab" name="chat" class="q-pa-none chat-tab-panel" :class="{ 'input-hidden': isChatInputHidden }">
+        <q-tab-panel v-if="showChatTab" name="chat" class="q-pa-none chat-tab-panel">
           <div class="tab-content-wrapper chat-tab-content">
           <!-- Chat Disabled Notice (Before Escrow) -->
           <div v-if="!isChatEnabled" class="chat-disabled-notice">
@@ -323,12 +331,25 @@
                       />
                       <div 
                         v-else 
-                        class="row items-center q-pa-sm encrypted-attachment"
+                        class="encrypted-attachment"
                       >
-                        <div class="text-grey-6">
-                          <q-icon name="image" size="sm" class="q-mr-xs"/>
-                          {{ $t('DecryptingAttachment', {}, 'Decrypting attachment...') }}
-                          <q-spinner v-if="message?.$state?.decryptingAttachment" size="sm" class="q-ml-xs"/>
+                        <div class="attachment-cover" aria-hidden="true">
+                          <q-icon name="image" size="80px" />
+                        </div>
+                        <div class="attachment-reveal-action">
+                          <q-btn
+                            unelevated
+                            rounded
+                            no-caps
+                            color="primary"
+                            icon="visibility"
+                            :label="message?.$state?.attachmentError ? $t('Retry') : $t('ClickToReveal')"
+                            :loading="message?.$state?.decryptingAttachment || message?.$state?.fetchingAttachment"
+                            @click="decryptMessageAttachment(message)"
+                          />
+                          <div v-if="message?.$state?.attachmentError" class="text-caption q-mt-sm" role="alert">
+                            {{ $t('AttachmentRevealFailed', {}, 'Unable to open image. Please retry.') }}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -341,7 +362,7 @@
             <!-- Chat input -->
             <div 
               class="chat-input-wrapper" 
-              :class="[getDarkModeClass(darkMode), { 'chat-input-hidden': isChatInputHidden }]"
+              :class="getDarkModeClass(darkMode)"
             >
               <!-- 1-hour grace period countdown after release/cancel/refund -->
               <div v-if="chatGraceCountdownActive" class="chat-close-countdown" :class="getDarkModeClass(darkMode)">
@@ -541,11 +562,13 @@ export default {
       wsFetchingOrder: false,
       orderUpdatePending: false,
       contractUpdatePending: false,
+      contractInfoOpen: false,
       fetchOrderInProgress: false,
       orderRefreshPending: false,
       loadingData: false,
       state: '',
       isloaded: false,
+      orderLoaded: false,
       confirmType: '',
 
       dialogType: '',
@@ -600,6 +623,9 @@ export default {
 
       // Tabs
       activeTab: 'details',
+      selectedTab: 'details',
+      tabSelectionFrame: null,
+      tabChangeFrame: null,
       
       // History Tab
       statusHistory: [],
@@ -635,10 +661,6 @@ export default {
       scrollHeightBeforeLoad: 0,
       scrollTopBeforeLoad: 0,
       
-      // Chat input scroll behavior
-      lastChatScrollY: 0,
-      isChatInputHidden: false,
-      chatScrollThreshold: 10,
       unreadChatCount: 0,
       
       // New message alert
@@ -722,11 +744,6 @@ export default {
         height = height - 40
       } else if ((this.state === 'escrow-bch' && this.hasArbiters) || this.state === 'payment-confirmation') {
         height = height - 90
-      }
-      
-      // When on chat tab and input is hidden, extend height to bottom of screen
-      if (this.activeTab === 'chat' && this.isChatInputHidden) {
-        height = height + 100 // Add back the space normally reserved for input
       }
       
       return height
@@ -814,6 +831,7 @@ export default {
     },
 
     canSendChatMessages () {
+      if (!this.isloaded) return false
       // If order isn't released/cancelled, normal chat rules apply.
       if (!Number.isFinite(this.chatCloseStatusAtMs)) return this.isChatEnabled
       // If there is a closure timestamp, only allow sending during the grace period.
@@ -837,7 +855,7 @@ export default {
          case 'payment-confirmation':
            return this.confirmType === 'buyer' ? this.$t('PayFiat') : this.$t('ReleaseBCH')
          default:
-           return ''
+           return this.order?.status?.label || ''
        }
      },
       getBackNavigationPath () {
@@ -954,53 +972,21 @@ export default {
         this.onSendingBCH(false)
       }
     },
-    activeTab (newTab, oldTab) {
-      if (newTab === 'history') {
-        this.readOrderStatus()
-      } else if (newTab === 'chat') {
-        // Only load chat if escrow is complete
-        if (!this.isChatEnabled) {
-          return
+    activeTab: {
+      flush: 'post',
+      handler (newTab, oldTab) {
+        this.selectedTab = newTab
+        if (this.tabChangeFrame != null) cancelAnimationFrame(this.tabChangeFrame)
+        if (oldTab === 'chat' && newTab !== 'chat') {
+          this.$refs.chatScrollTarget?.removeEventListener('scroll', this.handleChatScroll)
         }
-        
-        if (!this.chatLoaded) {
-          this.loadChatData()
-        } else if (this.chatReadyScope !== this.chatSetupScope()) {
-          this.retryChat()
-        } else {
-          // Update last read when switching to chat tab
-          updateLastRead(this.chatRef, this.chatMessages)
-            .then(() => {
-              bus.emit('last-read-update')
-              // Refresh unread count after marking as read
-              this.fetchChatUnread(this.chatRef)
-            })
-            .catch(error => {
-              console.error('Error updating last read:', error)
-            })
-        }
-        
-        // Attach scroll listener for chat input hide/show
-        this.$nextTick(() => {
-          const scrollTarget = this.$refs.chatScrollTarget
-          if (scrollTarget) {
-            scrollTarget.addEventListener('scroll', this.handleChatScroll, { passive: true })
-          }
+        this.tabChangeFrame = requestAnimationFrame(() => {
+          this.tabChangeFrame = requestAnimationFrame(() => {
+            this.tabChangeFrame = null
+            if (this.disposed || this.activeTab !== newTab || this.selectedTab !== newTab) return
+            this.handleTabChange(newTab, oldTab)
+          })
         })
-      } else if (oldTab === 'chat') {
-        // When leaving chat tab, refresh unread count (only if chat was enabled)
-        if (this.isChatEnabled) {
-          this.fetchChatUnread(this.chatRef)
-        }
-        
-        // Remove scroll listener when leaving chat
-        const scrollTarget = this.$refs.chatScrollTarget
-        if (scrollTarget) {
-          scrollTarget.removeEventListener('scroll', this.handleChatScroll)
-        }
-        
-        // Reset input visibility
-        this.isChatInputHidden = false
       }
     }
   },
@@ -1021,6 +1007,8 @@ export default {
   },
   beforeUnmount () {
     this.disposed = true
+    if (this.tabSelectionFrame != null) cancelAnimationFrame(this.tabSelectionFrame)
+    if (this.tabChangeFrame != null) cancelAnimationFrame(this.tabChangeFrame)
     this.closeWSConnection()
 
     if (this.chatCloseCountdownIntervalId) {
@@ -1167,6 +1155,65 @@ export default {
       if (actor.system) return actor.name
       if (actor.role) return `${this.$t('By', {}, 'by')} ${actor.name} (${actor.role})`
       return `${this.$t('By', {}, 'by')} ${actor.name}`
+    },
+
+    selectTab (name) {
+      if (this.disposed || !['details', 'history', 'chat'].includes(name) || (name !== 'details' && !this.isloaded)) return
+      if (this.selectedTab === name) return
+      this.selectedTab = name
+      if (this.tabChangeFrame != null) cancelAnimationFrame(this.tabChangeFrame)
+      if (this.tabSelectionFrame != null) cancelAnimationFrame(this.tabSelectionFrame)
+      this.tabSelectionFrame = null
+      if (this.activeTab === name) return
+      this.tabSelectionFrame = requestAnimationFrame(() => {
+        this.tabSelectionFrame = requestAnimationFrame(() => {
+          this.tabSelectionFrame = null
+          if (this.disposed || this.selectedTab !== name) return
+          this.activeTab = name
+        })
+      })
+    },
+
+    handleTabChange (newTab, oldTab) {
+      if (newTab === 'history') {
+        this.readOrderStatus()
+      } else if (newTab === 'chat') {
+        // Only load chat if escrow is complete
+        if (!this.isChatEnabled) {
+          return
+        }
+
+        if (!this.chatLoaded) {
+          this.loadChatData()
+        } else if (this.chatReadyScope !== this.chatSetupScope()) {
+          this.retryChat()
+        } else {
+          // Update last read when switching to chat tab
+          updateLastRead(this.chatRef, this.chatMessages)
+            .then(() => {
+              bus.emit('last-read-update')
+              // Refresh unread count after marking as read
+              this.fetchChatUnread(this.chatRef)
+            })
+            .catch(error => {
+              console.error('Error updating last read:', error)
+            })
+        }
+
+        // Attach scroll listener for chat input hide/show
+        this.$nextTick(() => {
+          const scrollTarget = this.$refs.chatScrollTarget
+          if (scrollTarget) {
+            scrollTarget.addEventListener('scroll', this.handleChatScroll, { passive: true })
+          }
+        })
+      } else if (oldTab === 'chat') {
+        // When leaving chat tab, refresh unread count (only if chat was enabled)
+        if (this.isChatEnabled) {
+          this.fetchChatUnread(this.chatRef)
+        }
+
+      }
     },
 
     // Chat Tab Methods
@@ -1346,10 +1393,6 @@ export default {
           await this.decryptChatMessages(this.chatMessages)
           if (this.disposed || this.chatSetupScope() !== scope) return
           
-          // Decrypt attachments
-          await this.decryptChatAttachments()
-          if (this.disposed || this.chatSetupScope() !== scope) return
-          
           // Set pagination state
           this.chatMessagesOffset = this.chatMessages.length
           // Check if there are more messages: either next exists OR count > current loaded
@@ -1369,6 +1412,7 @@ export default {
 
         // Scroll to bottom with multiple attempts and stop infinite scroll if no more messages
         this.$nextTick(() => {
+          if (this.disposed || this.activeTab !== 'chat' || this.selectedTab !== 'chat') return
           this.scrollChatToBottom()
           
           // If no more messages, stop the infinite scroll
@@ -1466,13 +1510,6 @@ export default {
           
           // Decrypt messages
           await this.decryptChatMessages(uniqueNewMessages)
-          
-          // Decrypt attachments in the new messages
-          for (const message of uniqueNewMessages) {
-            if (message.hasAttachment || message.attachment || message.encryptedAttachmentUrl) {
-              await this.decryptMessageAttachment(message)
-            }
-          }
           
           // Prepend new messages to the beginning (older messages)
           this.chatMessages = [...uniqueNewMessages, ...this.chatMessages]
@@ -1820,11 +1857,6 @@ export default {
           const added = vm.addMessageToChat(decryptedMessage)
 
           if (added) {
-            // Decrypt attachment if present
-            if (decryptedMessage.hasAttachment || decryptedMessage.attachment || decryptedMessage.encryptedAttachmentUrl) {
-              await vm.decryptMessageAttachment(decryptedMessage)
-            }
-            
             // Trigger glow animation for messages from other party
             if (!decryptedMessage.chatIdentity.is_user) {
               vm.triggerNewMessageGlow()
@@ -1936,8 +1968,10 @@ export default {
     },
 
     scrollChatToBottom () {
+      if (this.disposed || this.activeTab !== 'chat' || this.selectedTab !== 'chat') return
       // Scroll the window to bottom
       const scrollWindowToBottom = () => {
+        if (this.disposed || this.activeTab !== 'chat' || this.selectedTab !== 'chat') return
         window.scrollTo({
           top: document.body.scrollHeight,
           behavior: 'smooth'
@@ -1988,8 +2022,6 @@ export default {
       if (!scrollTarget) return
       
       const currentScrollY = scrollTarget.scrollTop
-      const scrollHeight = scrollTarget.scrollHeight
-      const clientHeight = scrollTarget.clientHeight
       
       // Check if user is near the top (within 100px)
       const isNearTop = currentScrollY <= 100
@@ -2014,35 +2046,6 @@ export default {
           this.userHasScrolled = false
         }
       }
-      
-      // If at the bottom of chat, always show input
-      if (currentScrollY + clientHeight >= scrollHeight - 10) {
-        this.isChatInputHidden = false
-        this.lastChatScrollY = currentScrollY
-        return
-      }
-      
-      // If at the top of chat, hide input (reading old messages)
-      if (currentScrollY <= 10) {
-        this.isChatInputHidden = true
-        this.lastChatScrollY = currentScrollY
-        return
-      }
-      
-      // Only hide/show if scrolled past threshold
-      if (Math.abs(currentScrollY - this.lastChatScrollY) < this.chatScrollThreshold) {
-        return
-      }
-      
-      if (currentScrollY < this.lastChatScrollY) {
-        // Scrolling up (to older messages) - hide input
-        this.isChatInputHidden = true
-      } else if (currentScrollY > this.lastChatScrollY) {
-        // Scrolling down (to newer messages) - show input
-        this.isChatInputHidden = false
-      }
-      
-      this.lastChatScrollY = currentScrollY
     },
 
     openFileAttachmentField () {
@@ -2089,68 +2092,32 @@ export default {
     },
 
     async decryptMessageAttachment (message) {
-      if (!this.keypair.privkey) await this.loadKeyPair()
-      if (!this.keypair.privkey) return
-      if (message.decryptedAttachmentFile?.url) return
-      
+      if (this.disposed || this.activeTab !== 'chat' || this.selectedTab !== 'chat' ||
+          message?.$state?.decryptingAttachment || message?.decryptedAttachmentFile?.url) return
+      const scope = this.chatSetupScope()
+      if (!message.$state) message.$state = {}
+      message.$state.decryptingAttachment = true
+      message.$state.attachmentError = false
       try {
-        if (!message.$state) {
-          message.$state = {}
-        }
-        message.$state.decryptingAttachment = true
-        
-        // Set encryptedAttachmentUrl if it's missing but attachmentUrl exists
-        // The API returns the encrypted file URL as 'attachment_url', but decryption expects 'encryptedAttachmentUrl'
+        if (!this.keypair.privkey) await this.loadKeyPair()
+        if (this.disposed || this.chatSetupScope() !== scope) return
+        if (!this.keypair.privkey) throw new Error('Chat key is unavailable')
         if (!message.encryptedAttachmentUrl) {
-          if (message.encrypted_attachment_url) {
-            message.encryptedAttachmentUrl = message.encrypted_attachment_url
-          } else if (message.attachmentUrl) {
-            message.encryptedAttachmentUrl = message.attachmentUrl
-          }
+          message.encryptedAttachmentUrl = message.encrypted_attachment_url || message.attachmentUrl
         }
-        
-        if (typeof message.decryptAttachment === 'function') {
-          await message.decryptAttachment(this.keypair.privkey, false)
+        if (typeof message.decryptAttachment !== 'function') throw new Error('Attachment is unavailable')
+        await message.decryptAttachment(this.keypair.privkey, false)
+        if (this.disposed || this.chatSetupScope() !== scope) return
+        if (!message.decryptedAttachmentFile?.url) throw new Error('Attachment could not be decrypted')
+      } catch {
+        if (!this.disposed && this.chatSetupScope() === scope) message.$state.attachmentError = true
+      } finally {
+        message.$state.decryptingAttachment = false
+        if (!this.disposed && this.chatSetupScope() === scope) {
+          this.chatMessages = [...this.chatMessages]
+          this.$forceUpdate()
         }
-        
-        message.$state.decryptingAttachment = false
-        
-        // Force Vue reactivity update - critical for iOS
-        // Increment key to force re-render of the entire chat messages list
-        this.chatMessagesKey++
-        
-        // Recreate the array to trigger reactivity
-        this.chatMessages = [...this.chatMessages]
-        
-        // Force update as additional safeguard
-        this.$forceUpdate()
-      } catch (error) {
-        console.error('Error decrypting attachment:', error)
-        message.$state.decryptingAttachment = false
-        // Force update even on error to clear the loading state
-        this.chatMessagesKey++
-        this.chatMessages = [...this.chatMessages]
-        this.$forceUpdate()
       }
-    },
-
-    async decryptChatAttachments () {
-      // Decrypt all message attachments
-      const messagesWithAttachments = this.chatMessages.filter(msg => 
-        (msg.attachment || msg.encryptedAttachmentUrl || msg.encrypted_attachment_url || msg.hasAttachment) && 
-        !msg.decryptedAttachmentFile?.url
-      )
-      
-      for (const message of messagesWithAttachments) {
-        await this.decryptMessageAttachment(message)
-      }
-      
-      // Force a complete re-render
-      // Note: decryptMessageAttachment already updates chatMessagesKey and recreates the array
-      // but we add an extra update here as a safeguard
-      this.chatMessagesKey++
-      this.chatMessages = [...this.chatMessages]
-      this.$forceUpdate()
     },
 
     chatMemberType (chatIdentityId) {
@@ -2189,6 +2156,7 @@ export default {
         const response = await backend.get(url, { authorize: 'peer', cache: false, params: { _fresh: Date.now() } })
         if (vm.disposed) return
         vm.order = response.data
+        vm.orderLoaded = true
         await vm.handleNewStatus(vm.order.status)
         vm.syncLiveActivity()
         vm.updateOrderReadAt()
@@ -2955,6 +2923,7 @@ export default {
   }
 
   .order-tab-btn {
+    touch-action: manipulation;
     min-width: 100px;
     height: 44px;
     border-radius: 22px;
@@ -2963,7 +2932,7 @@ export default {
     background-color: transparent;
     outline: 0;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: none;
     font-weight: 500;
     font-size: 14px;
     padding: 0 16px;
@@ -3146,18 +3115,6 @@ export default {
       min-height: 0;
     }
     
-    // When input is hidden, make everything transparent
-    &.input-hidden {
-      background: transparent !important;
-      
-      :deep(.tab-content-wrapper) {
-        background: transparent !important;
-      }
-      
-      :deep(.q-tab-panel__content) {
-        background: transparent !important;
-      }
-    }
   }
 
   .chat-disabled-notice {
@@ -3521,12 +3478,6 @@ export default {
     }
   }
   
-  .chat-input-hidden {
-    transform: translateX(-50%) translateY(120px);
-    opacity: 0;
-    pointer-events: none;
-  }
-
   .chat-input-container {
     padding: 12px 16px;
     display: flex;
@@ -3649,6 +3600,14 @@ export default {
   }
   
   .encrypted-attachment {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 220px;
+    max-width: 100%;
+    min-height: 150px;
+    overflow: hidden;
     background: rgba(0, 0, 0, 0.05);
     border-radius: 8px;
     padding: 8px 12px;
@@ -3656,6 +3615,22 @@ export default {
     .dark & {
       background: rgba(255, 255, 255, 0.05);
     }
+  }
+
+  .attachment-cover {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(96, 125, 139, 0.35), rgba(158, 158, 158, 0.15));
+    filter: blur(6px);
+    opacity: 0.6;
+  }
+
+  .attachment-reveal-action {
+    position: relative;
+    text-align: center;
   }
 
   // Mobile Responsive Adjustments
@@ -3714,18 +3689,6 @@ export default {
         min-height: 0;
       }
       
-      // When input is hidden, make everything transparent
-      &.input-hidden {
-        background: transparent !important;
-        
-        :deep(.tab-content-wrapper) {
-          background: transparent !important;
-        }
-        
-        :deep(.q-tab-panel__content) {
-          background: transparent !important;
-        }
-      }
     }
   }
 
@@ -3785,18 +3748,6 @@ export default {
         min-height: 0;
       }
       
-      // When input is hidden, make everything transparent
-      &.input-hidden {
-        background: transparent !important;
-        
-        :deep(.tab-content-wrapper) {
-          background: transparent !important;
-        }
-        
-        :deep(.q-tab-panel__content) {
-          background: transparent !important;
-        }
-      }
     }
   }
   

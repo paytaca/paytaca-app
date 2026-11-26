@@ -48,6 +48,26 @@ export async function resizeImage(opts) {
  * @returns {Promise<Image>}
  */
 export async function fileToImage(file) {
+  let objectUrl
+  try {
+    objectUrl = URL.createObjectURL(file)
+  } catch {
+    objectUrl = null
+  }
+  if (objectUrl) {
+    return new Promise((resolve, reject) => {
+      const image = new Image()
+      image.addEventListener('load', () => {
+        URL.revokeObjectURL(objectUrl)
+        resolve(image)
+      })
+      image.addEventListener('error', error => {
+        URL.revokeObjectURL(objectUrl)
+        reject(error)
+      })
+      image.src = objectUrl
+    })
+  }
   return new Promise((resolve, reject) => {
     const fileReader = new nativeFileAPI.FileReader()
     fileReader.addEventListener('load', () => {

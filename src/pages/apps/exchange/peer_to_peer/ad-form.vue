@@ -800,7 +800,8 @@ export default {
       this.$q.dialog({
         component: CurrencyFilterDialog,
         componentProps: {
-          fiatList: this.fiatCurrencies
+          fiatList: this.fiatCurrencies,
+          showExistingAdsNotice: this.adsState === 'create'
         }
       })
         .onOk(currency => {

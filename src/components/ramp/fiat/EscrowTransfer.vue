@@ -35,12 +35,12 @@
             {{ $t('ContractInformation', {}, 'Contract Information') }}
           </p>
           <q-icon 
-            :name="showContractInfo ? 'expand_less' : 'expand_more'" 
+            :name="contractInfoOpen ? 'expand_less' : 'expand_more'"
             size="sm" 
             color="blue-grey-6"
             class="q-mr-sm" />
         </div>
-        <q-list v-show="showContractInfo" class="pt-card payment-info-list" :class="getDarkModeClass(darkMode)">
+        <q-list v-show="contractInfoOpen" class="pt-card payment-info-list" :class="getDarkModeClass(darkMode)">
           <!-- Arbiter -->
           <q-item>
             <q-item-section>
@@ -225,16 +225,16 @@ export default {
       escrowContract: null,
       escrowBalance: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
-      loadCancelButton: false,
-      showContractInfo: false
+      loadCancelButton: false
     }
   },
-  emits: ['back', 'success', 'refresh', 'updateArbiterStatus', 'sending', 'cancel'],
+  emits: ['back', 'success', 'refresh', 'updateArbiterStatus', 'sending', 'cancel', 'update:contractInfoOpen'],
   components: {
     RampDragSlide
   },
   props: {
-    data: Object
+    data: Object,
+    contractInfoOpen: Boolean
   },
   watch: {
     sendingBch (val) {
@@ -287,7 +287,7 @@ export default {
   methods: {
     getDarkModeClass,
     toggleContractInfo () {
-      this.showContractInfo = !this.showContractInfo
+      this.$emit('update:contractInfoOpen', !this.contractInfoOpen)
     },
     async onReloadContractAddress () {
       try {

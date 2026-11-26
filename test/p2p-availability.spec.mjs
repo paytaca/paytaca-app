@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import axios from 'axios'
 import { EventEmitter } from 'node:events'
-import { markRaw, reactive } from 'vue'
+import { markRaw, reactive, ref, h, watch, nextTick, createRenderer, onMounted, onBeforeUnmount } from 'vue'
+import { QTabPanels, QTabPanel } from 'quasar'
 import { readFileSync, readdirSync } from 'node:fs'
 import { availabilityError, fetchP2PAvailability, assertP2PAvailable, isP2PAvailabilityError, p2pAvailabilityMessage, p2pRequestFeature } from '../src/exchange/availability.js'
 import rampState from '../src/store/ramp/state.js'
@@ -304,7 +305,7 @@ describe('Order payment details reminder', () => {
     assert.deepEqual(routes, [{ name: 'p2p-profile', query: { edit: 'payments', returnOrder: '7' } }])
     const payments = readFileSync('src/components/ramp/fiat/AddPaymentMethods.vue', 'utf8')
     assert.match(payments, /name: 'p2p-order', params: \{ order: \$route.query.returnOrder \}/)
-    assert.match(source, /<div v-if="!paymentDetailsReminderRequired" class="component-wrapper">/)
+    assert.match(source, /<div v-if="isloaded && !paymentDetailsReminderRequired" class="component-wrapper">/)
     assert.match(source, /<q-dialog :model-value="paymentDetailsReminderRequired" persistent>/)
   })
 })
@@ -3625,6 +3626,19 @@ describe('P2P order WebSocket status refresh', () => {
     assert.equal(h.vm.order.chat_session_ref, 'saved-chat-session')
   })
 
+  it('makes the read-only order available before status-dependent initialization finishes', async () => {
+    const h = orderHarness()
+    let finish
+    h.vm.handleNewStatus = () => new Promise(resolve => { finish = resolve })
+    const pending = h.vm.fetchOrder()
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(h.vm.orderLoaded, true)
+    assert.equal(h.vm.order.id, 24)
+    assert.notEqual(h.vm.isloaded, true)
+    finish()
+    await pending
+  })
+
   it('starts the notification subscription when chat becomes available on an already-visible order', async () => {
     const h = orderHarness()
     let starts = 0
@@ -5815,4 +5829,706 @@ describe('P2P availability transport errors', () => {
       })
     })
   }
+})
+
+
+describe('P2P order tab responsiveness', () => {
+  it('keeps tab contents mounted on switches and still replaces them on authoritative updates', async () => {
+    const source = readFileSync('src/pages/apps/exchange/peer_to_peer/order.vue', 'utf8')
+    const panelTag = source.match(/<q-tab-panels\b[\s\S]*?>/)[0]
+    const props = { keepAlive: /\bkeep-alive\b/.test(panelTag), animated: /\banimated\b/.test(panelTag) }
+    const mounted = { details: 0, chat: 0 }
+    const unmounted = { details: 0, chat: 0 }
+    const active = ref('details')
+    const version = ref(0)
+    const content = name => ({
+      setup () {
+        onMounted(() => { mounted[name]++ })
+        onBeforeUnmount(() => { unmounted[name]++ })
+        return () => h('div', name)
+      }
+    })
+    const Details = content('details')
+    const Chat = content('chat')
+    const renderer = createRenderer({
+      createElement: () => ({}), createText: () => ({}), createComment: () => ({}),
+      insert () {}, remove () {}, setText () {}, setElementText () {}, patchProp () {},
+      parentNode: () => null, nextSibling: () => null
+    })
+    const app = renderer.createApp({
+      setup () {
+        return () => h(QTabPanels, { ...props, modelValue: active.value }, () => [
+          h(QTabPanel, { name: 'details' }, () => h(Details, { key: version.value })),
+          h(QTabPanel, { name: 'chat' }, () => h(Chat))
+        ])
+      }
+    })
+    app.config.globalProperties.$q = { dark: { isActive: false }, lang: { rtl: false } }
+    app.mount({})
+    active.value = 'chat'
+    await nextTick()
+    active.value = 'details'
+    await nextTick()
+    assert.deepEqual(mounted, { details: 1, chat: 1 })
+    assert.deepEqual(unmounted, { details: 0, chat: 0 })
+    version.value++
+    await nextTick()
+    assert.equal(mounted.details, 2)
+    assert.equal(unmounted.details, 1)
+    app.unmount()
+    assert.deepEqual(unmounted, { details: 2, chat: 1 })
+  })
+
+  it('blocks chat sending until order initialization finishes', () => {
+    const source = readFileSync('src/pages/apps/exchange/peer_to_peer/order.vue', 'utf8')
+    const start = source.indexOf('    canSendChatMessages () {')
+    const end = source.indexOf('\n    },', start) + 7
+    const computed = new Function(`return { ${source.slice(start, end)} }`)()
+    assert.equal(computed.canSendChatMessages.call({ isloaded: false, isChatEnabled: true }), false)
+    assert.equal(computed.canSendChatMessages.call({ isloaded: true, isChatEnabled: true }), true)
+  })
+})
+
+
+describe('P2P tab paint ordering', () => {
+  function harness () {
+    const source = readFileSync('src/pages/apps/exchange/peer_to_peer/order.vue', 'utf8')
+    const start = source.indexOf('    activeTab: {')
+    const end = source.indexOf('\n  },\n  created () {', start)
+    const frames = new Map()
+    let nextFrame = 0
+    const watcher = new Function('requestAnimationFrame', 'cancelAnimationFrame', `return { ${source.slice(start, end)} }`)(
+      callback => { frames.set(++nextFrame, callback); return nextFrame }, id => frames.delete(id)
+    ).activeTab
+    const events = []
+    const vm = {
+      activeTab: 'chat', isChatEnabled: true, chatLoaded: false,
+      handleTabChange: (...args) => events.push(args),
+      $refs: { chatScrollTarget: { removeEventListener: () => events.push('remove-scroll-listener') } }
+    }
+    const frame = () => {
+      const pending = [...frames.values()]
+      frames.clear()
+      pending.forEach(callback => callback())
+    }
+    return { vm, watcher, events, frame }
+  }
+
+  it('allows the selected tab to paint before starting its data work', () => {
+    const h = harness()
+    assert.equal(h.watcher.flush, 'post')
+    h.watcher.handler.call(h.vm, 'chat', 'details')
+    assert.deepEqual(h.events, [])
+    h.frame()
+    assert.deepEqual(h.events, [])
+    h.frame()
+    assert.deepEqual(h.events, [['chat', 'details']])
+  })
+
+  it('cancels obsolete tab work during rapid switches and immediately detaches chat scrolling', () => {
+    const h = harness()
+    h.watcher.handler.call(h.vm, 'chat', 'details')
+    h.vm.activeTab = 'details'
+    h.watcher.handler.call(h.vm, 'details', 'chat')
+    assert.deepEqual(h.events, ['remove-scroll-listener'])
+    h.frame()
+    h.frame()
+    assert.deepEqual(h.events, ['remove-scroll-listener', ['details', 'chat']])
+  })
+
+  it('does not start tab work after the page is disposed', () => {
+    const h = harness()
+    h.watcher.handler.call(h.vm, 'chat', 'details')
+    h.vm.disposed = true
+    h.frame()
+    h.frame()
+    assert.deepEqual(h.events, [])
+  })
+
+  it('does not let delayed chat scrolling move the Details page', () => {
+    const source = readFileSync('src/pages/apps/exchange/peer_to_peer/order.vue', 'utf8')
+    const start = source.indexOf('    scrollChatToBottom () {')
+    const end = source.indexOf('\n    },', start) + 7
+    const events = []
+    const timers = []
+    const target = { scrollHeight: 100, scrollTo: () => events.push('scroll') }
+    const methods = new Function('window', 'document', 'setTimeout', `return { ${source.slice(start, end)} }`)(
+      { scrollTo: () => events.push('window-scroll') },
+      { body: { scrollHeight: 100 }, querySelector: () => target },
+      callback => timers.push(callback)
+    )
+    const vm = { activeTab: 'chat', selectedTab: 'chat', $refs: { chatScrollTarget: target } }
+    methods.scrollChatToBottom.call(vm)
+    const count = events.length
+    assert(count > 0)
+    vm.activeTab = 'details'
+    timers.forEach(callback => callback())
+    methods.scrollChatToBottom.call(vm)
+    assert.equal(events.length, count)
+  })
+})
+
+
+describe('P2P tab highlight responsiveness', () => {
+  function harness () {
+    const source = readFileSync('src/pages/apps/exchange/peer_to_peer/order.vue', 'utf8')
+    const start = source.indexOf('    selectTab (name) {')
+    const end = source.indexOf('\n    },', start) + 7
+    const frames = new Map()
+    let nextFrame = 0
+    const methods = new Function('requestAnimationFrame', 'cancelAnimationFrame', `return { ${source.slice(start, end)} }`)(
+      callback => { frames.set(++nextFrame, callback); return nextFrame }, id => frames.delete(id)
+    )
+    const vm = { selectedTab: 'details', activeTab: 'details', isloaded: true }
+    const frame = () => {
+      const callbacks = [...frames.values()]
+      frames.clear()
+      callbacks.forEach(callback => callback())
+    }
+    return { vm, select: name => methods.selectTab.call(vm, name), frame, frames }
+  }
+
+  it('updates the highlight before activating the panel or its loading work', () => {
+    const h = harness()
+    h.select('chat')
+    assert.equal(h.vm.selectedTab, 'chat')
+    assert.equal(h.vm.activeTab, 'details')
+    h.frame()
+    assert.equal(h.vm.activeTab, 'details')
+    h.frame()
+    assert.equal(h.vm.activeTab, 'chat')
+  })
+
+  it('does not cancel pending loading work when the selected tab is tapped again', () => {
+    const h = harness()
+    h.vm.activeTab = 'chat'
+    h.vm.selectedTab = 'chat'
+    let completed = false
+    h.frames.set(99, () => { completed = true })
+    h.vm.tabChangeFrame = 99
+    h.select('chat')
+    h.frame()
+    assert.equal(completed, true)
+  })
+
+  it('does not activate an obsolete panel after a second selection', () => {
+    const h = harness()
+    h.select('chat')
+    h.select('history')
+    assert.equal(h.vm.selectedTab, 'history')
+    h.frame()
+    h.frame()
+    assert.equal(h.vm.activeTab, 'history')
+  })
+
+  it('cancels pending activation when selecting the already visible tab', () => {
+    const h = harness()
+    h.select('chat')
+    h.select('details')
+    h.frame()
+    h.frame()
+    assert.equal(h.vm.selectedTab, 'details')
+    assert.equal(h.vm.activeTab, 'details')
+  })
+
+  it('does not enable Chat before the order is ready or activate it after disposal', () => {
+    const h = harness()
+    h.vm.isloaded = false
+    h.select('chat')
+    assert.equal(h.vm.selectedTab, 'details')
+    h.vm.isloaded = true
+    h.select('chat')
+    h.vm.disposed = true
+    h.frame()
+    h.frame()
+    assert.equal(h.vm.activeTab, 'details')
+  })
+})
+
+
+describe('P2P chat composer visibility', () => {
+  const source = readFileSync('src/pages/apps/exchange/peer_to_peer/order.vue', 'utf8')
+  const start = source.indexOf('    handleChatScroll () {')
+  const end = source.indexOf('\n    },', start) + 7
+  const { handleChatScroll } = new Function(`return { ${source.slice(start, end)} }`)()
+
+  it('keeps the composer visible when scrolling older messages or when the viewport changes', () => {
+    const target = { scrollTop: 500, scrollHeight: 1000, clientHeight: 500 }
+    const vm = { $refs: { chatScrollTarget: target }, hasScrolledAwayFromTop: false, userHasScrolled: false }
+    handleChatScroll.call(vm)
+    assert.equal(vm.hasScrolledAwayFromTop, true)
+    target.scrollTop = 0
+    target.clientHeight = 400
+    handleChatScroll.call(vm)
+    assert.equal(vm.userHasScrolled, true)
+    assert.equal(vm.isChatInputHidden, undefined)
+    assert(!source.includes('chat-input-hidden'))
+    assert(!source.includes('isChatInputHidden'))
+  })
+
+  it('still requires scrolling away after loading older messages before requesting more', () => {
+    const target = { scrollTop: 0 }
+    const vm = { $refs: { chatScrollTarget: target }, justLoadedMessages: true, userHasScrolled: false }
+    handleChatScroll.call(vm)
+    assert.equal(vm.justLoadedMessages, true)
+    assert.equal(vm.userHasScrolled, false)
+    target.scrollTop = 200
+    handleChatScroll.call(vm)
+    assert.equal(vm.justLoadedMessages, false)
+    target.scrollTop = 0
+    handleChatScroll.call(vm)
+    assert.equal(vm.userHasScrolled, true)
+  })
+})
+
+describe('P2P profile reporting and loading', () => {
+  function harness () {
+    const calls = []
+    const bindings = {
+      HeaderNav: {}, MiscDialogs: {}, AddPaymentMethods: {}, ProgressLoader: {}, FeedbackDialog: {}, ReportDialog: {},
+      getDarkModeClass () {}, formatDate () {}, formatCurrency () {}, getAppealCooldown () {},
+      updateChatIdentity () {}, updateP2PProfile () {}, bus: { on () {}, emit () {} },
+      backend: { post: async (...args) => { calls.push(args); return { status: 200 } } }
+    }
+    const source = readFileSync('src/pages/apps/exchange/peer_to_peer/profile.vue', 'utf8')
+    const script = source.match(/<script>([\s\S]*?)<\/script>/)[1].replace(/^import .*$/gm, '').replace('export default', 'return')
+    const view = new Function(...Object.keys(bindings), script)(...Object.values(bindings))
+    return { view, calls }
+  }
+
+  it('exposes the report event handlers on the Vue instance and submits the selected reason', async () => {
+    const { view, calls } = harness()
+    const vm = {
+      ...view.methods, user: { id: 17 }, showReportDialog: false,
+      $q: { notify () {} }, $t: key => key
+    }
+    vm.confirmReportUser()
+    assert.equal(vm.showReportDialog, true)
+    await vm.handleReportSubmit('Spam')
+    assert.deepEqual(calls, [['/ramp-p2p/peer/17/report/', { reason: 'Spam' }, { authorize: true }]])
+    assert.equal(vm.reportSubmitted, true)
+  })
+
+  it('starts fetching the profile immediately and waits for its identity before fetching reviews', async () => {
+    const { view } = harness()
+    const events = []
+    let finish
+    const vm = {
+      userInfo: null,
+      fetchUser: () => { events.push('profile'); return new Promise(resolve => { finish = resolve }) },
+      fetchReviews: () => events.push('reviews')
+    }
+    const pending = view.mounted.call(vm)
+    assert.equal(vm.pageName, 'main')
+    assert.deepEqual(events, ['profile'])
+    finish()
+    await pending
+    assert.deepEqual(events, ['profile', 'reviews'])
+  })
+})
+
+
+describe('P2P payment methods initialization', () => {
+  function harness (type = 'Profile') {
+    const requests = []
+    const events = []
+    const method = { id: 7, payment_type: { id: 3, short_name: 'Bank' }, values: [] }
+    const bindings = {
+      HeaderNav: {}, MiscDialogs: {}, PaymentMethodForm: {}, ProgressLoader: {}, SelectPaymentMethods: {}, CurrencyFilterDialog: {},
+      getDarkModeClass () {}, p2pErrorMessage () {}, bus: { emit: name => events.push(name) },
+      backend: { get: async (url, config) => {
+        requests.push([url, config])
+        if (url.includes('currency/fiat')) return { data: [{ symbol: 'PHP' }, { symbol: 'USD' }] }
+        if (url.includes('payment-type')) return { data: [{ id: 3, short_name: 'Bank' }] }
+        return { data: config.params.currency === 'USD' ? [] : [{ ...method }] }
+      } }
+    }
+    const source = readFileSync('src/components/ramp/fiat/AddPaymentMethods.vue', 'utf8')
+    const script = source.match(/<script>([\s\S]*?)<\/script>/)[1].replace(/^import .*$/gm, '').replace('export default', 'return')
+    const view = new Function(...Object.keys(bindings), script)(...Object.values(bindings))
+    const vm = reactive({
+      type, embedded: false, $store: { getters: { 'market/selectedCurrency': { symbol: 'PHP' } } }
+    })
+    Object.assign(vm, view.data.call(vm))
+    for (const [name, method] of Object.entries(view.methods)) vm[name] = method.bind(vm)
+    const stops = Object.entries(view.watch).map(([key, handler]) => watch(() => vm[key], handler.bind(vm)))
+    return { vm, view, requests, events, stop: () => stops.forEach(stop => stop()) }
+  }
+
+  it('fetches each profile currency once without fetching unused payment types', async () => {
+    const h = harness()
+    try {
+      const pending = h.view.mounted.call(h.vm)
+      assert.deepEqual(h.events, ['hide-menu'])
+      await pending
+      await nextTick()
+      assert.deepEqual(h.requests.map(([url, config]) => [url, config.params?.currency]), [
+        ['/ramp-p2p/currency/fiat', undefined],
+        ['/ramp-p2p/payment-method', 'PHP'],
+        ['/ramp-p2p/payment-method', 'USD']
+      ])
+      assert.equal(h.vm.isloaded, true)
+      assert.deepEqual(h.vm.groupedPaymentMethods.map(group => group.currency), ['PHP'])
+      assert.equal(h.vm.groupedPaymentMethods[0].methods[0].id, 7)
+    } finally { h.stop() }
+  })
+
+  it('still loads payment types before filtering and validating methods in the order flow', async () => {
+    const h = harness('General')
+    h.vm.adPaymentMethods = ['Bank']
+    try {
+      await h.view.mounted.call(h.vm)
+      assert.deepEqual(h.requests.map(([url]) => url), ['/ramp-p2p/payment-type/', '/ramp-p2p/payment-method'])
+      assert.equal(h.vm.paymentMethods.length, 1)
+      assert.equal(h.vm.paymentMethods[0].alien, false)
+      assert.equal(h.vm.paymentMethods[0].selected, true)
+      assert.equal(h.vm.isloaded, true)
+    } finally { h.stop() }
+  })
+})
+
+describe('P2P create-order opening latency', () => {
+  const source = readFileSync('src/pages/apps/exchange/peer_to_peer/order-form.vue', 'utf8')
+  const start = source.indexOf('    async loadData (')
+  const end = source.indexOf('\n    },', start) + 7
+  const { loadData } = new Function(`return { ${source.slice(start, end)} }`)()
+
+  it('starts all ad-dependent requests concurrently without waiting for feature controls', async () => {
+    const started = []
+    const finishes = {}
+    const request = name => () => {
+      started.push(name)
+      return new Promise(resolve => { finishes[name] = resolve })
+    }
+    const vm = {
+      fetchAd: request('ad'),
+      $store: { dispatch: request('controls') },
+      fetchAdOwnerPeerData: request('peer'), fetchArbiters: request('arbiters'), fetchMarketPrice: request('price'),
+      setupWebSocket: () => started.push('sockets')
+    }
+    let completed = false
+    const pending = loadData.call(vm, () => { completed = true })
+    assert.deepEqual(started, ['ad', 'controls'])
+    vm.ad = { id: 8, fiat_currency: { symbol: 'PHP' } }
+    finishes.ad()
+    await new Promise(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['ad', 'controls', 'peer', 'arbiters', 'price'])
+    finishes.peer()
+    finishes.arbiters()
+    finishes.price()
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(vm.isloaded, false)
+    assert.equal(completed, false)
+    finishes.controls()
+    await pending
+    assert.equal(vm.isloaded, true)
+    assert.equal(completed, true)
+    assert.equal(started.at(-1), 'sockets')
+  })
+
+  it('keeps the form gated until the arbiter request has finished', async () => {
+    let finish
+    const vm = {
+      ad: { fiat_currency: { symbol: 'PHP' } },
+      fetchAd: async () => {}, $store: { dispatch: async () => {} },
+      fetchAdOwnerPeerData: async () => {}, fetchMarketPrice: async () => {},
+      fetchArbiters: () => new Promise(resolve => { finish = resolve }), setupWebSocket () {}
+    }
+    const pending = loadData.call(vm)
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(vm.isloaded, false)
+    finish()
+    await pending
+    assert.equal(vm.isloaded, true)
+  })
+})
+
+describe('P2P payment-type navigation cancellation', () => {
+  function action (error) {
+    const source = readFileSync('src/store/ramp/actions.js', 'utf8')
+    const start = source.indexOf('export function fetchPaymentTypes (')
+    const end = source.indexOf('\n}', start) + 2
+    const logs = []
+    const backend = { get: async () => { throw error } }
+    const fetch = new Function('backend', 'toRaw', 'console', `${source.slice(start, end).replace('export ', '')}; return fetchPaymentTypes`)(backend, value => value, { error: (...args) => logs.push(args) })
+    return { fetch, logs }
+  }
+
+  function filter () {
+    const source = readFileSync('src/components/ramp/fiat/FilterComponent.vue', 'utf8')
+    const start = source.indexOf('    async updateFilters (')
+    const end = source.indexOf('\n    },', start) + 7
+    return new Function(`return { ${source.slice(start, end)} }`)().updateFilters
+  }
+
+  for (const failure of [
+    { code: 'ECONNABORTED', message: 'Request aborted' },
+    { code: 'ERR_CANCELED', message: 'canceled' }
+  ]) {
+    it(`quietly stops canceled filter initialization without changing selections: ${failure.code}`, async () => {
+      const { fetch, logs } = action(failure)
+      const commits = []
+      await assert.rejects(fetch({ commit: (...args) => commits.push(args) }, { currency: 'PHP' }), error => error === failure)
+      assert.deepEqual(logs, [])
+      assert.deepEqual(commits, [])
+      const filters = { payment_types: [3] }
+      const vm = { currency: 'PHP', filters, $store: { dispatch: async () => { throw failure } } }
+      await filter().call(vm)
+      assert.equal(vm.filters, filters)
+    })
+  }
+
+  for (const failure of [
+    { code: 'ECONNABORTED', message: 'timeout of 10000ms exceeded' },
+    { response: { status: 500 } }
+  ]) {
+    it(`continues reporting real request failures: ${failure.code || failure.response.status}`, async () => {
+      const { fetch, logs } = action(failure)
+      await assert.rejects(fetch({}, { currency: 'PHP' }), error => error === failure)
+      assert.equal(logs.length, 1)
+      const vm = { $store: { dispatch: async () => { throw failure } } }
+      await assert.rejects(filter().call(vm), error => error === failure)
+    })
+  }
+})
+
+describe('P2P contract information expansion', () => {
+  it('preserves the chosen expansion state when contract regeneration recreates the escrow component', async () => {
+    const source = readFileSync('src/components/ramp/fiat/EscrowTransfer.vue', 'utf8')
+    const script = source.match(/<script>([\s\S]*?)<\/script>/)[1].replace(/^import .*$/gm, '').replace('export default', 'return')
+    const escrow = new Function('getDarkModeClass', 'RampDragSlide', script)(() => '', {})
+    const order = readFileSync('src/pages/apps/exchange/peer_to_peer/order.vue', 'utf8')
+    assert.match(order, /v-model:contract-info-open="contractInfoOpen"/)
+    assert.match(order, /contractInfoOpen: false/)
+    const open = ref(false)
+    const version = ref(0)
+    const child = ref(null)
+    const Escrow = {
+      props: escrow.props,
+      emits: escrow.emits,
+      methods: { toggleContractInfo: escrow.methods.toggleContractInfo },
+      render () { return h('div', this.contractInfoOpen ? 'open' : 'closed') }
+    }
+    const renderer = createRenderer({
+      createElement: () => ({}), createText: () => ({}), createComment: () => ({}),
+      insert () {}, remove () {}, setText () {}, setElementText () {}, patchProp () {},
+      parentNode: () => null, nextSibling: () => null
+    })
+    const app = renderer.createApp({
+      render () {
+        return h(Escrow, {
+          ref: child, key: version.value, contractInfoOpen: open.value,
+          'onUpdate:contractInfoOpen': value => { open.value = value }
+        })
+      }
+    })
+    app.mount({})
+    try {
+      assert.equal(child.value.contractInfoOpen, false)
+      child.value.toggleContractInfo()
+      await nextTick()
+      const previous = child.value
+      version.value++
+      await nextTick()
+      assert.notEqual(child.value, previous)
+      assert.equal(child.value.contractInfoOpen, true)
+      child.value.toggleContractInfo()
+      await nextTick()
+      version.value++
+      await nextTick()
+      assert.equal(child.value.contractInfoOpen, false)
+    } finally { app.unmount() }
+  })
+})
+
+describe('Chat attachment processing responsiveness and compatibility', () => {
+  async function encryption () {
+    const { default: crypto } = await import('node:crypto')
+    const { secp256k1 } = await import('@noble/curves/secp256k1.js')
+    const { bytesToHex, hexToBytes } = await import('@noble/hashes/utils.js')
+    const source = readFileSync('src/marketplace/chat/encryption.js', 'utf8').replace(/^import .*$/gm, '').replaceAll('export ', '')
+    let ticks = 0
+    let yields = 0
+    const api = new Function('crypto', 'secp256k1', 'bytesToHex', 'hexToBytes', 'Store', 'nativeFileAPI', 'Buffer', 'performance', 'setTimeout', `${source}; return { processAttachmentData, encryptData, decryptData, encryptImage, decryptImage, compressEncryptedImage, decompressEncryptedImage }`)(
+      crypto, secp256k1, bytesToHex, hexToBytes, {}, { File }, Buffer,
+      { now: () => { ticks += 9; return ticks } },
+      callback => { yields++; setImmediate(callback) }
+    )
+    return { ...api, crypto, secp256k1, yields: () => yields }
+  }
+
+  it('preserves the existing cipher bytes and decrypts legacy attachments across chunk boundaries', async () => {
+    const api = await encryption()
+    const key = Buffer.alloc(32, 7)
+    const iv = Buffer.alloc(16, 9)
+    for (const length of [0, 1, 14, 15, 16, 29, 30, 31, 4097]) {
+      const original = Buffer.from(Array.from({ length }, (_, i) => i % 256))
+      const legacyCipher = Buffer.from(api.encryptData(original, key, iv), 'base64')
+      const encrypted = await api.processAttachmentData(original, key, iv)
+      assert.deepEqual(encrypted, legacyCipher)
+      const decrypted = await api.processAttachmentData(legacyCipher, key, iv, true)
+      assert.deepEqual(decrypted, original)
+      assert.deepEqual(api.decryptData(encrypted, key, iv, { inputEncoding: 'binary', outputEncoding: 'binary' }), original)
+    }
+  })
+
+  it('yields to other UI tasks during both encryption and decryption of a large attachment', async () => {
+    const api = await encryption()
+    const original = Buffer.alloc(128 * 1024, 31)
+    const key = Buffer.alloc(32, 7)
+    const iv = Buffer.alloc(16, 9)
+    const encrypted = await api.processAttachmentData(original, key, iv)
+    const encryptionYields = api.yields()
+    assert(encryptionYields > 1)
+    const decrypted = await api.processAttachmentData(encrypted, key, iv, true)
+    assert(api.yields() > encryptionYields)
+    assert.deepEqual(decrypted, original)
+  })
+
+  it('keeps multi-recipient attachments readable by the sender and recipient through the serialized format', async () => {
+    const api = await encryption()
+    const sender = '01'.padStart(64, '0')
+    const recipient = '02'.padStart(64, '0')
+    const pubkeys = [sender, recipient].map(key => Buffer.from(api.secp256k1.getPublicKey(Buffer.from(key, 'hex'))).toString('hex'))
+    const original = Buffer.from(Array.from({ length: 4097 }, (_, i) => i % 256))
+    const encrypted = await api.encryptImage({ file: new File([original], 'test.png'), privkey: sender, pubkeys })
+    const serialized = await api.compressEncryptedImage(encrypted)
+    for (const privkey of [sender, recipient]) {
+      const payload = await api.decompressEncryptedImage(serialized)
+      const decrypted = await api.decryptImage({ ...payload, privkey, tryAllKeys: false })
+      assert.deepEqual(Buffer.from(await decrypted.arrayBuffer()), original)
+    }
+  })
+
+  it('still rejects invalid cipher padding', async () => {
+    const api = await encryption()
+    await assert.rejects(api.processAttachmentData(Buffer.alloc(15), Buffer.alloc(32), Buffer.alloc(16), true))
+  })
+})
+
+describe('Chat image preview decoding', () => {
+  function harness (fail = false, legacy = false) {
+    const events = []
+    class ImageStub {
+      constructor () { this.listeners = {} }
+      addEventListener (name, callback) { this.listeners[name] = callback }
+      set src (value) { events.push(value); queueMicrotask(() => this.listeners[fail ? 'error' : 'load'](new Error('Synthetic decode failure'))) }
+    }
+    class ReaderStub {
+      constructor () { this.listeners = {} }
+      addEventListener (name, callback) { this.listeners[name] = callback }
+      readAsDataURL () { events.push('read-data-url'); this.result = 'data:image/png;base64,synthetic'; this.listeners.load() }
+    }
+    const source = readFileSync('src/marketplace/chat/attachment.js', 'utf8')
+    const start = source.indexOf('export async function fileToImage(')
+    const end = source.indexOf('\n}', start) + 2
+    const url = {
+      createObjectURL () { if (legacy) throw new Error('Unsupported native file'); return 'blob:synthetic' },
+      revokeObjectURL: value => events.push(`revoke:${value}`)
+    }
+    const decode = new Function('URL', 'Image', 'nativeFileAPI', `${source.slice(start, end).replace('export ', '')}; return fileToImage`)(url, ImageStub, { FileReader: ReaderStub })
+    return { decode, events, ImageStub }
+  }
+
+  it('decodes the selected file without first making a full base64 copy and releases its URL', async () => {
+    const h = harness()
+    const image = await h.decode({})
+    assert(image instanceof h.ImageStub)
+    assert.deepEqual(h.events, ['blob:synthetic', 'revoke:blob:synthetic'])
+  })
+
+  it('releases the temporary URL when decoding fails', async () => {
+    const h = harness(true)
+    await assert.rejects(h.decode({}), /Synthetic decode failure/)
+    assert.deepEqual(h.events, ['blob:synthetic', 'revoke:blob:synthetic'])
+  })
+
+  it('preserves the native FileReader fallback for files that cannot use object URLs', async () => {
+    const h = harness(false, true)
+    await h.decode({})
+    assert.deepEqual(h.events, ['read-data-url', 'data:image/png;base64,synthetic'])
+  })
+})
+
+describe('P2P attachment reveal guard', () => {
+  const source = readFileSync('src/pages/apps/exchange/peer_to_peer/order.vue', 'utf8')
+  const start = source.indexOf('    async decryptMessageAttachment (')
+  const end = source.indexOf('\n    },', start) + 7
+  const { decryptMessageAttachment } = new Function(`return { ${source.slice(start, end)} }`)()
+
+  function harness () {
+    const calls = []
+    const message = {
+      $state: {}, encrypted_attachment_url: 'synthetic-encrypted-image',
+      async decryptAttachment (...args) { calls.push(args); this.decryptedAttachmentFile = { url: 'blob:synthetic' } }
+    }
+    const vm = {
+      activeTab: 'chat', selectedTab: 'chat', keypair: { privkey: 'synthetic-private-key' },
+      chatSetupScope: () => 'synthetic-wallet/order', chatMessages: [message], $forceUpdate () {}
+    }
+    return { vm, message, calls, reveal: () => decryptMessageAttachment.call(vm, message) }
+  }
+
+  it('has no automatic attachment decryption on initial load, pagination or incoming messages', () => {
+    assert(!source.includes('decryptChatAttachments'))
+    const calls = source.match(/(?:this|vm)\.decryptMessageAttachment\(/g) || []
+    assert.equal(calls.length, 0)
+    assert.match(source, /@click="decryptMessageAttachment\(message\)"/)
+  })
+
+  it('decrypts only the selected image and reuses it after it is revealed', async () => {
+    const h = harness()
+    await h.reveal()
+    assert.deepEqual(h.calls, [['synthetic-private-key', false]])
+    assert.equal(h.message.encryptedAttachmentUrl, 'synthetic-encrypted-image')
+    assert.equal(h.message.$state.decryptingAttachment, false)
+    assert.equal(h.message.$state.attachmentError, false)
+    await h.reveal()
+    assert.equal(h.calls.length, 1)
+  })
+
+  it('ignores repeated taps while an image is being opened', async () => {
+    const h = harness()
+    let finish
+    h.message.decryptAttachment = () => new Promise(resolve => { finish = resolve })
+    const pending = h.reveal()
+    assert.equal(h.message.$state.decryptingAttachment, true)
+    await h.reveal()
+    h.message.decryptedAttachmentFile = { url: 'blob:synthetic' }
+    finish()
+    await pending
+    assert.equal(h.message.$state.decryptingAttachment, false)
+    assert.equal(h.message.$state.attachmentError, false)
+  })
+
+  it('shows a retry state after failure and allows a later successful reveal', async () => {
+    const h = harness()
+    const decrypt = h.message.decryptAttachment
+    h.message.decryptAttachment = async () => { throw new Error('Synthetic failure') }
+    await h.reveal()
+    assert.equal(h.message.$state.attachmentError, true)
+    assert.equal(h.message.$state.decryptingAttachment, false)
+    h.message.decryptAttachment = decrypt
+    await h.reveal()
+    assert.equal(h.message.$state.attachmentError, false)
+    assert.equal(h.message.decryptedAttachmentFile.url, 'blob:synthetic')
+  })
+
+  it('does not start a reveal while outside chat or after the page is disposed', async () => {
+    for (const update of [{ activeTab: 'details' }, { selectedTab: 'details' }, { disposed: true }]) {
+      const h = harness()
+      Object.assign(h.vm, update)
+      await h.reveal()
+      assert.deepEqual(h.calls, [])
+    }
+  })
+
+  it('does not decrypt if the wallet or order changes while obtaining the key', async () => {
+    const h = harness()
+    h.vm.keypair = {}
+    h.vm.loadKeyPair = async () => { h.vm.chatSetupScope = () => 'another-wallet/order' }
+    await h.reveal()
+    assert.deepEqual(h.calls, [])
+    assert.equal(h.message.$state.decryptingAttachment, false)
+  })
 })
