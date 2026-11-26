@@ -1,0 +1,25 @@
+{
+  "source": "engagement-hub main/security/tests/test_canonical.py:27-44 (pinned layout vector) and :46-55 (empty body equivalence)",
+  "protocolTag": "EHAUTH1",
+  "vectors": [
+    {
+      "name": "post-with-query-and-json-body",
+      "method": "POST",
+      "fullPath": "/api/rewards/userreward/?x=1",
+      "timestamp": "1700000000",
+      "nonce": "abcdefghijklmnop",
+      "body": "{\"a\": 1}",
+      "canonical": "EHAUTH1\nPOST\n/api/rewards/userreward/?x=1\n1700000000\nabcdefghijklmnop\nf9d86028c6e0d64e225186f96acb69338b2c59764df79162107f5c4bb34d1310"
+    },
+    {
+      "name": "get-with-no-body",
+      "method": "GET",
+      "fullPath": "/x/",
+      "timestamp": "1",
+      "nonce": "abcdefghijklmnop",
+      "body": null,
+      "canonical": "EHAUTH1\nGET\n/x/\n1\nabcdefghijklmnop\ne3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "emptyBodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
