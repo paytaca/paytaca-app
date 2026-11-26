@@ -182,6 +182,20 @@ describe('request signing signature', () => {
         error.reason === 'invalid-key'
     )
   })
+
+  it('never echoes key material in the failure message', () => {
+    // A near-miss WIF: libauth quotes the offending character, so the signer
+    // must substitute its own message rather than pass that through.
+    const nearMiss = WIF.slice(0, -1) + 'X'
+    try {
+      signCanonical(nearMiss, 'canonical')
+      assert.fail('expected the signer to reject a bad checksum')
+    } catch (error) {
+      assert.equal(error instanceof WalletSigningUnavailable, true)
+      assert.equal(error.message.includes(nearMiss.slice(0, 8)), false)
+      assert.equal(error.message.includes('checksum'), false)
+    }
+  })
 })
 
 describe('request signing headers', () => {

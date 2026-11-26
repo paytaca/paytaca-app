@@ -85,8 +85,10 @@ function decodeWif (wif) {
   }
   const decoded = decodePrivateKeyWif(wif)
   if (typeof decoded === 'string') {
+    // libauth's message is deliberately not included: it can quote a character
+    // from the input, and a signing failure must never surface key material.
     throw new WalletSigningUnavailable(
-      'Wallet signing key is invalid: ' + decoded,
+      'Wallet signing key is not a valid WIF.',
       'invalid-key'
     )
   }
@@ -102,8 +104,9 @@ export function signCanonical (wif, canonical) {
   const messageHash = sha256.hash(utf8ToBin(canonical))
   const derSignature = secp256k1.signMessageHashDER(privateKey, messageHash)
   if (typeof derSignature === 'string') {
+    // Never include libauth's message: it can echo key material.
     throw new WalletSigningUnavailable(
-      'Could not sign request: ' + derSignature,
+      'Could not sign the request with this wallet.',
       'sign-failed'
     )
   }
@@ -142,4 +145,252 @@ export function signingHeaders ({
   }
   if (walletHash) headers['wallet-hash'] = String(walletHash)
   return headers
+}
+
+// Headers the server requires as a set. A request carries all five or none:
+// the server treats a partial set as unsigned in log mode and rejects it in
+// enforce mode, so a half-signed request is strictly worse than an unsigned one.
+export const WALLET_AUTH_HEADERS = [
+  'public-key',
+  'signature',
+  'timestamp',
+  'nonce',
+  'wallet-hash'
+]
+
+const CLOCK_SKEW_THRESHOLD_SECONDS = 120
+
+let clockOffsetSeconds = 0
+
+export function getClockOffsetSeconds () {
+  return clockOffsetSeconds
+}
+
+function recordServerClock (headers) {
+  const raw = headers?.date
+  if (!raw) return
+  const serverMs = Date.parse(raw)
+  if (!Number.isFinite(serverMs)) return
+  clockOffsetSeconds = Math.round((Date.now() - serverMs) / 1000)
+}
+
+/**
+ * Classifies a failed request as a wallet-auth rejection.
+ *
+ * The server answers a bad signature, a stale timestamp, a replayed nonce, or
+ * a wallet-hash mismatch with 403, so the status is the signal. `isClockSkew`
+ * only says the device clock is far enough from the server's for a timestamp
+ * window failure to be the likely cause; it is never proof.
+ */
+export function walletAuthFailure (error) {
+  const status = error?.response?.status ?? null
+  const detail = error?.response?.data?.detail || error?.response?.data?.error || ''
+  const isSigningFailure = status === 403
+  return {
+    isSigningFailure,
+    isClockSkew: isSigningFailure && Math.abs(clockOffsetSeconds) > CLOCK_SKEW_THRESHOLD_SECONDS,
+    offsetSeconds: clockOffsetSeconds,
+    detail: typeof detail === 'string' ? detail : ''
+  }
+}
+
+function isPlainObject (value) {
+  if (value === null || typeof value !== 'object') return false
+  const proto = Object.getPrototypeOf(value)
+  return proto === Object.prototype || proto === null
+}
+
+/**
+ * Turns the request body into the exact bytes that will be signed and sent.
+ *
+ * Axios runs request interceptors before `transformRequest`, so an object body
+ * is still an object here. Stringifying it once and handing the string back
+ * keeps the signed bytes and the sent bytes identical: `transformRequest`
+ * passes a string through untouched once the JSON content type is set.
+ */
+function serializeBody (data) {
+  if (data === undefined || data === null) {
+    return { rawBody: new Uint8Array() }
+  }
+  if (typeof data === 'string') {
+    return { rawBody: data }
+  }
+  if (Array.isArray(data) || isPlainObject(data)) {
+    const serialized = JSON.stringify(data)
+    if (typeof serialized !== 'string') {
+      throw new WalletSigningUnavailable(
+        'Request body could not be serialized.',
+        'unsupported-body'
+      )
+    }
+    return { rawBody: serialized, body: serialized, isJson: true }
+  }
+  throw new WalletSigningUnavailable(
+    'Refusing to sign a non-JSON request body.',
+    'unsupported-body'
+  )
+}
+
+/**
+ * The path the server will match against: `request.get_full_path()`, i.e. the
+ * leading slash, the trailing slash, and the query string exactly as sent.
+ *
+ * This mirrors axios' own `buildFullPath`/`combineURLs` rather than
+ * `new URL(url, baseURL)`. The two disagree for a URL that starts with `/`:
+ * axios trims the slashes at the seam and keeps the base path, while `new URL`
+ * resolves against the origin and drops the base path. Signing the wrong path
+ * would be a silent 403 in enforce mode, so the join has to match the
+ * transport byte for byte.
+ */
+function fullRequestUrl ({ url, baseURL }) {
+  if (!url) throw new Error('Request URL is missing')
+  const isAbsolute = /^([a-z][a-z\d+\-.]*:)?\/\//i.test(url)
+  if (baseURL && !isAbsolute) {
+    return baseURL.replace(/\/?\/$/, '') + '/' + url.replace(/^\/+/, '')
+  }
+  return url
+}
+
+function signedPath (config) {
+  const resolved = new URL(fullRequestUrl(config))
+  // A fragment never reaches the server, so it is not part of the signed path.
+  return resolved.pathname + resolved.search
+}
+
+function hasQueryParams (config) {
+  const params = config.params
+  if (!params) return false
+  if (typeof params === 'object') return Object.keys(params).length > 0
+  return String(params).length > 0
+}
+
+const attachedInstances = new WeakSet()
+
+/**
+ * Signs every request on an axios instance with the wallet key.
+ *
+ * Signing is a denylist: a request is signed unless it sets
+ * `config.skipWalletSignature`. An allowlist would turn every missed call
+ * site into a silent 403 once the server moves to enforce mode.
+ *
+ * `hooks` is injected so this module stays free of app imports:
+ *   - getWalletHash()  -> active wallet hash, or a falsy value
+ *   - getPrivateKey(hash) -> WIF string, or null for watch-only
+ *   - isChipnet()      -> true when the app is on chipnet
+ *   - isDevelopment()  -> true to fail loudly on unsupported requests
+ */
+export function attachSignedRequests (instance, hooks = {}) {
+  if (!instance?.interceptors) {
+    throw new TypeError('attachSignedRequests requires an axios instance')
+  }
+  for (const name of ['getWalletHash', 'getPrivateKey', 'isChipnet', 'isDevelopment']) {
+    if (typeof hooks[name] !== 'function') {
+      throw new TypeError('attachSignedRequests requires a ' + name + ' hook')
+    }
+  }
+  if (attachedInstances.has(instance)) return
+  attachedInstances.add(instance)
+
+  const warnUnsigned = (reason) => {
+    console.warn('wallet signing unavailable: ' + reason)
+  }
+
+  instance.interceptors.request.use(async (config) => {
+    if (config.skipWalletSignature === true) return config
+
+    if (hooks.isChipnet()) {
+      warnUnsigned('chipnet')
+      return config
+    }
+
+    const walletHash = config.signWithWallet || await hooks.getWalletHash()
+    if (!walletHash) {
+      warnUnsigned('no active wallet')
+      return config
+    }
+
+    if (hasQueryParams(config)) {
+      const message = 'Request signing does not support config.params; inline the query string in the URL'
+      if (hooks.isDevelopment()) throw new Error(message)
+      warnUnsigned('config.params is not supported')
+      return config
+    }
+
+    let body
+    try {
+      body = serializeBody(config.data)
+    } catch (error) {
+      warnUnsigned(error.message)
+      return config
+    }
+
+    let fullPath
+    try {
+      fullPath = signedPath(config)
+    } catch (error) {
+      if (hooks.isDevelopment()) throw error
+      warnUnsigned(error.message)
+      return config
+    }
+
+    if (hooks.isDevelopment() && body.isJson && isPlainObject(config.data)) {
+      const declared = config.data.wallet_hash
+      if (declared && declared !== walletHash) {
+        console.warn(
+          'wallet signing: body names wallet ' + declared +
+          ' but the request is signed by ' + walletHash
+        )
+      }
+    }
+
+    let wif
+    try {
+      wif = await hooks.getPrivateKey(walletHash)
+    } catch (error) {
+      warnUnsigned(error?.message || 'key unavailable')
+      return config
+    }
+    if (!wif) {
+      warnUnsigned('watch-only or locked wallet')
+      return config
+    }
+
+    let headers
+    try {
+      headers = signingHeaders({
+        wif,
+        method: config.method,
+        fullPath,
+        rawBody: body.rawBody,
+        walletHash
+      })
+    } catch (error) {
+      warnUnsigned(error?.message || 'signing failed')
+      return config
+    }
+
+    if (body.body !== undefined) {
+      config.data = body.body
+      if (body.isJson) {
+        config.headers = config.headers || {}
+        config.headers['Content-Type'] = 'application/json'
+      }
+    }
+
+    config.headers = config.headers || {}
+    Object.assign(config.headers, headers)
+    return config
+  })
+
+  instance.interceptors.response.use(
+    (response) => {
+      recordServerClock(response?.headers)
+      return response
+    },
+    (error) => {
+      recordServerClock(error?.response?.headers)
+      if (error?.response) error.walletAuth = walletAuthFailure(error)
+      return Promise.reject(error)
+    }
+  )
 }
