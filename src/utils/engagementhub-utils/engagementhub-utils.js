@@ -4,6 +4,7 @@ import { Capacitor } from '@capacitor/core'
 import { formatWithLocale } from '../denomination-utils'
 import { escapeHtml } from '../encoding'
 import { requestManager } from 'src/utils/request-manager'
+import { NOTIFS_URL } from 'src/utils/engagementhub-utils/api'
 
 const { t: $t } = i18n.global
 const ENGAGEMENT_HUB_URL =
@@ -11,6 +12,9 @@ const ENGAGEMENT_HUB_URL =
 
 // ========== CASHBACK ========== //
 
+// Deliberately not signed, and deliberately not exported: cashback lookups run
+// before the wallet owns the merchant relationship, so they stay module-private
+// and unsigned. Do not attach the signer here.
 const CASHBACK_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}cashback/` })
 requestManager.attachTo(CASHBACK_URL)
 
@@ -81,8 +85,6 @@ export function parseCashbackMessage (message, amountBchUnformatted, amountFiat,
 
 // ========== NOTIFICATIONS ========== //
 
-const NOTIFS_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}devicenotif/` })
-requestManager.attachTo(NOTIFS_URL)
 const NOTIF_TYPES = {
   MP: $t('Marketplace'),
   CB: $t('Cashback'),
