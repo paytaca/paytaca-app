@@ -120,7 +120,7 @@ backend.interceptors.response.use(
   async error => {
     if (error?.config?.p2pWalletHash) assertRequestWallet(error.config)
     if (error?.response?.status === 503 && !isP2PAvailabilityError(error)) {
-      error = Object.assign(availabilityError('p2p_maintenance', 'P2P_MAINTENANCE'), { config: error.config })
+      error = Object.assign(availabilityError(), { config: error.config })
     }
     if (isP2PAvailabilityError(error)) bus.emit('p2p-unavailable', error)
     // Handle 401 Unauthorized and 403 Forbidden errors - typically means session expired or not authenticated

@@ -467,7 +467,7 @@ export default {
   async mounted () {
     // Set Data Here
     const members = [this.order?.members?.buyer.public_key, this.order?.members?.seller.public_key].join('')
-    this.chatRef = generateChatRef(this.order?.id, this.order?.created_at, members)
+    this.chatRef = this.order?.chat_session_ref || generateChatRef(this.order?.id, this.order?.created_at, members)
     this.stopInfiniteScroll()
     this.loadKeyPair()
     this.loadChatSession()

@@ -28,7 +28,6 @@ export async function fetchP2PAvailability (client, feature, { skipAbortManager 
     return assertP2PAvailable(response.data, feature)
   } catch (error) {
     if (isP2PAvailabilityError(error)) throw error
-    if (error?.response?.status === 503) throw availabilityError('p2p_maintenance', 'P2P_MAINTENANCE')
     throw availabilityError()
   }
 }

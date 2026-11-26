@@ -40,12 +40,9 @@ export default {
     userType: { type: [String, Boolean], default: false }
   },
   data () {
-    return { confirmed: false, requestEpoch: 0, checking: true, error: this.authenticationError || null, screenKey: 0, retryTimer: null, retryCount: 0, requestPending: false, disposed: false }
+    return { maintenanceActive: null, confirmed: false, requestEpoch: 0, checking: true, error: this.authenticationError || null, screenKey: 0, retryTimer: null, retryCount: 0, requestPending: false, disposed: false }
   },
   computed: {
-    maintenanceActive () {
-      return this.$store.getters['ramp/featureToggles']?.P2P_MAINTENANCE_ACTIVE === true
-    },
     message () {
       return p2pAvailabilityMessage(this.$t.bind(this), this.error)
     }
@@ -78,6 +75,7 @@ export default {
       this.retryTimer = null
       this.requestPending = false
       this.confirmed = false
+      this.maintenanceActive = null
       this.checking = false
       this.error = this.authenticationError || null
       this.$store.commit('ramp/updateFeatureToggles', null)
@@ -120,6 +118,23 @@ export default {
         this.retryTimer = setTimeout(() => this.retry(), delay)
       }
     },
+    async refreshMaintenanceStatus (epoch) {
+      try {
+        const response = await backend.get('/ramp-p2p/feature-control/', {
+          authorize: false,
+          params: { _fresh: Date.now() },
+          timeout: 10000,
+          skipAbortManager: true,
+          cache: false
+        })
+        if (this.disposed || epoch !== this.requestEpoch || response.status !== 200 || response.cached === true) return
+        if (typeof response.data?.P2P_MAINTENANCE === 'boolean') {
+          this.maintenanceActive = response.data.P2P_MAINTENANCE
+        }
+      } catch {
+        return
+      }
+    },
     async retry (manual = false) {
       if (this.requestPending || this.disposed || document.hidden) return
       if (this.authenticationError) {
@@ -136,6 +151,7 @@ export default {
       this.retryTimer = null
       this.requestPending = true
       this.checking = true
+      this.refreshMaintenanceStatus(epoch)
       try {
         const controls = await fetchP2PAvailability(backend, undefined, { skipAbortManager: true, userType: this.userType })
         if (!isCurrent()) return

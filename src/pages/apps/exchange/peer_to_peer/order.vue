@@ -1226,7 +1226,7 @@ export default {
         try {
           await this.loadChatIdentity()
           if (!isCurrent()) return false
-          const session = await fetchChatSession(chatRef)
+          const session = this.order.chat_session_ref ? await fetchChatSession(chatRef) : null
           if (!isCurrent()) return false
           let members = session ? await fetchChatMembers(chatRef) : []
           if (!isCurrent()) return false
@@ -2191,7 +2191,7 @@ export default {
         vm.syncLiveActivity()
         vm.updateOrderReadAt()
         const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
-        const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
+        const chatRef = vm.order.chat_session_ref || generateChatRef(vm.order.id, vm.order.created_at, members)
         vm.chatRef = chatRef
         if (vm.isloaded && vm.isChatEnabled) vm.initializeChat()
       } catch (error) {
@@ -2646,7 +2646,7 @@ export default {
         return
       }
       const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
-      const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
+      const chatRef = vm.order.chat_session_ref || generateChatRef(vm.order.id, vm.order.created_at, members)
       vm.fetchOrderMembers(vm.order.id)
         .then(members => {
           const arbiter = members.filter(member => member.is_arbiter === true)

@@ -17,14 +17,30 @@ export const chatBackend = axios.create({
 requestManager.attachTo(chatBackend)
 
 let chatEpoch = 0
-bus.on('p2p-auth-cleared', () => { chatEpoch++ })
+let chatIdentityVerification = null
+let pendingChatIdentityVerification = null
+let chatVerificationVersion = 0
+
+function clearChatIdentityVerification () {
+  chatVerificationVersion++
+  chatIdentityVerification = null
+  pendingChatIdentityVerification = null
+}
+
+for (const event of ['p2p-auth-cleared', 'relogged']) {
+  bus.on(event, () => {
+    chatEpoch++
+    clearChatIdentityVerification()
+  })
+}
 
 function chatScope () {
   const user = Store.getters['ramp/getUser']
   return JSON.stringify([
     Store.getters['global/getWallet']('bch')?.walletHash,
     Store.getters['global/getWalletIndex'], Store.getters['global/isChipnet'],
-    user?.user_type || (user?.is_arbiter ? 'arbiter' : 'peer'), user?.id, chatEpoch
+    user?.user_type || (user?.is_arbiter ? 'arbiter' : 'peer'), user?.id,
+    user?.chat_identity_id, user?.public_key, user?.address, user?.address_path, user?.is_disabled, chatEpoch
   ])
 }
 
@@ -32,6 +48,40 @@ function assertChatScope (scope) {
   if (scope !== chatScope()) {
     throw Object.assign(new Error('The active P2P chat account changed. Please reopen chat.'), { code: 'p2p_identity_mismatch' })
   }
+}
+
+async function verifyChatSigningIdentity (userType) {
+  const scope = chatScope()
+  const activeWallet = wallet
+  const version = chatVerificationVersion
+  if (chatIdentityVerification?.scope === scope && chatIdentityVerification.wallet === activeWallet &&
+      Date.now() >= chatIdentityVerification.verifiedAt && chatIdentityVerification.expiresAt > Date.now()) {
+    try {
+      activeWallet.assertIdentity(chatIdentityVerification.profile)
+      return chatIdentityVerification.profile
+    } catch (error) {
+      clearChatIdentityVerification()
+      throw error
+    }
+  }
+  if (pendingChatIdentityVerification?.scope === scope && pendingChatIdentityVerification.wallet === activeWallet) {
+    return pendingChatIdentityVerification.promise
+  }
+  const started = Date.now()
+  const promise = assertP2PIdentity(null, userType).then(profile => {
+    assertChatScope(scope)
+    if (wallet !== activeWallet || version !== chatVerificationVersion) {
+      throw Object.assign(new Error('P2P chat authentication changed. Please retry chat setup.'), { code: 'p2p_identity_mismatch' })
+    }
+    activeWallet.assertIdentity(profile)
+    const verified = Object.freeze({ ...profile })
+    chatIdentityVerification = { scope, wallet: activeWallet, profile: verified, verifiedAt: started, expiresAt: started + 30000 }
+    return verified
+  }).finally(() => {
+    if (pendingChatIdentityVerification?.promise === promise) pendingChatIdentityVerification = null
+  })
+  pendingChatIdentityVerification = { scope, wallet: activeWallet, promise }
+  return promise
 }
 
 chatBackend.interceptors.request.use(async (config) => {
@@ -65,6 +115,7 @@ chatBackend.interceptors.response.use(response => {
 }, error => {
   if (error.config?.p2pChatScope) assertChatScope(error.config.p2pChatScope)
   if ([401, 403, 404].includes(error.response?.status)) {
+    clearChatIdentityVerification()
     error.code = 'p2p_chat_access_denied'
     error.message = 'Chat access could not be verified. Please reopen chat to retry.'
   }
@@ -88,9 +139,10 @@ function getSignerDataStorageKey(walletHash = null) {
 export async function signRequestData (data, walletHash = null) {
   const response = { walletHash: '', signature: '' }
   const userType = Store.getters['ramp/getUser']?.user_type || (Store.getters['ramp/getUser']?.is_arbiter ? 'arbiter' : 'peer')
-  const registered = await assertP2PIdentity(null, userType)
   const scope = chatScope()
   const signerWallet = wallet
+  const registered = await verifyChatSigningIdentity(userType)
+  assertChatScope(scope)
   const { value } = await getSignerData(walletHash)
   if (!value) {
     throw new Error('P2P chat signer is unavailable. Please retry chat setup.')
@@ -142,9 +194,10 @@ export async function updateSignerData () {
   console.log('Updating chat signer data')
   if (!wallet) await loadRampWallet()
   const userType = Store.getters['ramp/getUser']?.user_type || (Store.getters['ramp/getUser']?.is_arbiter ? 'arbiter' : 'peer')
-  const registered = await assertP2PIdentity(null, userType)
   const scope = chatScope()
   const signerWallet = wallet
+  const registered = await verifyChatSigningIdentity(userType)
+  assertChatScope(scope)
 
   // fetches the verifying keypair at address path 0/0
   const verifyingPubkeyIndex = 0 // fixed verifying pubkey index at 0

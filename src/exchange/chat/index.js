@@ -222,7 +222,7 @@ export async function createChatSession (orderId, chatRef) {
 
 export async function checkChatSessionAdmin (chatRef) {
   return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/sessions/${chatRef}/chat_member`, { forceSign: true })
+    chatBackend.get(`chat/sessions/${encodeURIComponent(chatRef)}/chat_member`, { forceSign: true })
       .then(response => {
         // console.log('Check chat admin:', response.data)
         resolve(response)
@@ -245,7 +245,7 @@ export async function checkChatSessionAdmin (chatRef) {
 }
 
 export async function fetchChatSession (chatRef) {
-  return chatBackend.get(`chat/sessions/${chatRef}/`, { forceSign: true })
+  return chatBackend.get(`chat/sessions/${encodeURIComponent(chatRef)}/`, { forceSign: true })
 }
 
 export async function updateChatMembers (chatRef, members, removeMemberIds = []) {
@@ -255,7 +255,7 @@ export async function updateChatMembers (chatRef, members, removeMemberIds = [])
       remove_chat_identities_id: removeMemberIds,
       members: members
     }
-    chatBackend.patch(`chat/sessions/${chatRef}/members/`, body, { forceSign: true })
+    chatBackend.patch(`chat/sessions/${encodeURIComponent(chatRef)}/members/`, body, { forceSign: true })
       .then(response => {
         resolve(response)
       })
@@ -279,7 +279,7 @@ export async function updateChatMembers (chatRef, members, removeMemberIds = [])
 
 export async function fetchChatMembers (chatRef) {
   return new Promise((resolve, reject) => {
-    chatBackend.get(`chat/members/full_info/?chat_ref=${chatRef}`, { forceSign: true })
+    chatBackend.get(`chat/members/full_info/?chat_ref=${encodeURIComponent(chatRef)}`, { forceSign: true })
       .then(response => {
         // console.log('Fetched chat members:', response)
         resolve(response.data.results)
@@ -307,7 +307,7 @@ export async function updateLastRead (chatRef, messages) {
   const data = {
     last_read_timestamp: lastRead
   }
-  return chatBackend.post(`chat/sessions/${chatRef}/chat_member/`, data, { forceSign: true })
+  return chatBackend.post(`chat/sessions/${encodeURIComponent(chatRef)}/chat_member/`, data, { forceSign: true })
     .then(response => {
       return response
     })
@@ -337,7 +337,7 @@ export function sendChatMessage (data, signData) {
 
 export function fetchChatMessages (chatRef, offset = null, limit = 10) {
   return new Promise((resolve, reject) => {
-    let url = `chat/messages/?chat_ref=${chatRef}&limit=${limit}`
+    let url = `chat/messages/?chat_ref=${encodeURIComponent(chatRef)}&limit=${limit}`
     if (offset !== null && offset !== undefined) {
       url += `&offset=${offset}`
     }
@@ -359,7 +359,7 @@ export function fetchChatMessages (chatRef, offset = null, limit = 10) {
 }
 
 export async function fetchChatPubkeys (chatRef) {
-  const response = await chatBackend.get(`chat/sessions/${chatRef}/pubkeys/`, { forceSign: true })
+  const response = await chatBackend.get(`chat/sessions/${encodeURIComponent(chatRef)}/pubkeys/`, { forceSign: true })
   if (!Array.isArray(response.data)) throw new Error('P2P chat public keys could not be read.')
   return response.data
 }
