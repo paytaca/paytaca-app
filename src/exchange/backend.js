@@ -122,7 +122,10 @@ backend.interceptors.response.use(
     if (error?.response?.status === 503 && !isP2PAvailabilityError(error)) {
       error = Object.assign(availabilityError(), { config: error.config })
     }
-    if (isP2PAvailabilityError(error)) bus.emit('p2p-unavailable', error)
+    const maintenanceIndicator = error?.config?.p2pMaintenanceIndicator === true && error.config.authorize === false &&
+      String(error.config.method || '').toLowerCase() === 'get' &&
+      /\/ramp-p2p\/feature-control\/?$/.test(String(error.config.url || '').split('?')[0])
+    if (isP2PAvailabilityError(error) && !maintenanceIndicator) bus.emit('p2p-unavailable', error)
     // Handle 401 Unauthorized and 403 Forbidden errors - typically means session expired or not authenticated
     // Check if this was an authorized request (requires authentication)
     const wasAuthorizedRequest = !!error?.config?.authorize

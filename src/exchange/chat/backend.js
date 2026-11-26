@@ -259,8 +259,18 @@ export async function getAuthenticatedChatWsUrl (socketUrl, userType) {
       !/^\/ws\/chat\/sessions\/[^/]+\/$/.test(url.pathname)) {
     throw new Error('Invalid P2P chat WebSocket URL.')
   }
-  if (user?.chatPreparation && !await user.chatPreparation) throw new Error('P2P chat setup is unavailable. Please reopen chat to retry.')
+  const prepared = user?.chatPreparation ? await user.chatPreparation : true
   assertChatScope(scope)
+  if (!prepared) {
+    const registered = await verifyChatSigningIdentity(userType)
+    assertChatScope(scope)
+    const identityRef = generateChatIdentityRef(wallet.walletHash)
+    const identity = Store.getters['ramp/chatIdentity']?.(identityRef)
+    if (!registered?.chat_identity_id || identity?.ref !== identityRef ||
+        String(identity?.id) !== String(registered.chat_identity_id)) {
+      throw new Error('P2P chat setup is unavailable. Please reopen chat to retry.')
+    }
+  }
   const started = Date.now()
   const response = await chatBackend.post('ws-auth-token/', {}, { forceSign: true, cache: false, timeout: 10000 })
   assertChatScope(scope)

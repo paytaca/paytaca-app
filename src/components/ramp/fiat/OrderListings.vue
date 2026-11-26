@@ -510,38 +510,16 @@ export default {
     },
     async resetAndRefetchListings () {
       this.$store.commit('ramp/resetOrdersPagination')
-      
-      // Reset displayEmptyList to show skeleton
       this.displayEmptyList = false
-      
-      // Clear local listings immediately to show skeleton
       this.localListings = []
-      
       this.loading = true
-      
-      // Ensure minimum loading time for skeleton visibility
-      const startTime = Date.now()
-      const minLoadingTime = 500 // 500ms minimum
-      
-      await this.fetchOrders(true)
-      
-      // Update local listings from store (now includes cash-in orders from backend)
-      this.localListings = [...this.listings]
-      
-      // Calculate remaining time to reach minimum loading time
-      const elapsedTime = Date.now() - startTime
-      const remainingTime = Math.max(0, minLoadingTime - elapsedTime)
-      
-      // Wait for remaining time if needed
-      if (remainingTime > 0) {
-        await new Promise(resolve => setTimeout(resolve, remainingTime))
-      }
-
-      setTimeout(() => {
+      try {
+        await this.fetchOrders(true)
+        this.localListings = [...this.listings]
         this.displayEmptyList = true
-      }, 150)
-
-      this.loading = false
+      } finally {
+        this.loading = false
+      }
     },
     updatePaginationValues () {
       const vm = this

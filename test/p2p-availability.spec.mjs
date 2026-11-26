@@ -571,6 +571,7 @@ describe('P2P maintenance screen', () => {
     const { url, config } = h.state.anonymousRequests[0]
     assert.equal(url, '/ramp-p2p/feature-control/')
     assert.equal(config.authorize, false)
+    assert.equal(config.p2pMaintenanceIndicator, true)
     assert.equal(config.cache, false)
     assert.equal(h.commits.at(-1)[1].P2P_MAINTENANCE, false)
     h.state.rawControls.P2P_MAINTENANCE = false
@@ -587,6 +588,45 @@ describe('P2P maintenance screen', () => {
     assert.equal(h.vm.confirmed, true)
     assert.equal(h.vm.error, null)
     assert.equal(h.vm.maintenanceActive, true)
+  })
+
+  it('keeps the confirmed maintenance banner after returning to the app if its refresh fails', async () => {
+    const h = screenHarness()
+    h.state.controls = available
+    await h.vm.retry()
+    assert.equal(h.vm.maintenanceActive, true)
+    h.document.hidden = true
+    h.vm.onVisibilityChange()
+    assert.equal(h.vm.confirmed, false)
+    assert.equal(h.vm.maintenanceActive, true)
+    h.state.rawGet = async () => { throw { code: 'ERR_NETWORK' } }
+    h.document.hidden = false
+    h.vm.onVisibilityChange()
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(h.vm.confirmed, true)
+    assert.equal(h.vm.error, null)
+    assert.equal(h.vm.maintenanceActive, true)
+  })
+
+  it('clears the retained banner when a fresh anonymous check confirms maintenance is off', async () => {
+    const h = screenHarness()
+    h.state.controls = available
+    await h.vm.retry()
+    h.vm.reset()
+    assert.equal(h.vm.maintenanceActive, true)
+    h.state.rawControls.P2P_MAINTENANCE = false
+    await h.vm.retry()
+    assert.equal(h.vm.maintenanceActive, false)
+    assert.equal(h.vm.confirmed, true)
+  })
+
+  it('does not infer that maintenance is off from approved tester access alone', async () => {
+    const h = screenHarness()
+    h.state.controls = available
+    h.state.rawGet = async () => { throw { code: 'ERR_NETWORK' } }
+    await h.vm.retry()
+    assert.equal(h.vm.confirmed, true)
+    assert.equal(h.vm.maintenanceActive, null)
   })
 
   it('ignores stale, cached, and malformed anonymous maintenance responses', async () => {
@@ -607,6 +647,70 @@ describe('P2P maintenance screen', () => {
       await h.vm.refreshMaintenanceStatus(h.vm.requestEpoch)
       assert.equal(h.vm.maintenanceActive, null)
     }
+  })
+
+  it('retries one transient polling failure without interrupting a confirmed page', async () => {
+    const h = screenHarness()
+    h.state.controls = available
+    await h.vm.retry()
+    const screenKey = h.vm.screenKey
+    let attempts = 0
+    h.state.get = async () => {
+      if (++attempts === 1) throw { code: 'ECONNABORTED', message: 'timeout of 10000ms exceeded' }
+      return { status: 200, data: available }
+    }
+    await h.vm.retry()
+    assert.equal(attempts, 2)
+    assert.equal(h.vm.confirmed, true)
+    assert.equal(h.vm.error, null)
+    assert.equal(h.vm.screenKey, screenKey)
+  })
+
+  it('does not retry a failed poll after its account context is reset', async () => {
+    const h = screenHarness()
+    h.state.controls = available
+    await h.vm.retry()
+    let attempts = 0
+    h.state.get = async () => { attempts++; h.vm.reset(); throw { code: 'ERR_NETWORK' } }
+    await h.vm.retry()
+    assert.equal(attempts, 1)
+    assert.equal(h.vm.confirmed, false)
+    assert.equal(h.vm.error, null)
+  })
+
+  it('requires a successful initial availability check before showing P2P', async () => {
+    const h = screenHarness()
+    let attempts = 0
+    h.state.get = async () => { attempts++; throw { code: 'ERR_NETWORK' } }
+    await h.vm.retry()
+    assert.equal(attempts, 1)
+    assert.equal(h.vm.confirmed, false)
+    assert.equal(h.vm.error.response.data.reason, 'connection')
+  })
+
+  it('blocks access when both attempts to recheck connectivity fail', async () => {
+    const h = screenHarness()
+    h.state.controls = available
+    await h.vm.retry()
+    let attempts = 0
+    h.state.get = async () => { attempts++; throw { code: 'ERR_NETWORK' } }
+    await h.vm.retry()
+    assert.equal(attempts, 2)
+    assert.equal(h.vm.confirmed, false)
+    assert.equal(h.vm.error.response.data.reason, 'connection')
+    assert.deepEqual(h.commits.at(-1), ['ramp/updateFeatureToggles', null])
+  })
+
+  it('does not treat confirmed maintenance as a transient network failure', async () => {
+    const h = screenHarness()
+    h.state.controls = available
+    await h.vm.retry()
+    let attempts = 0
+    h.state.get = async () => { attempts++; return { status: 200, data: { P2P_MAINTENANCE: true } } }
+    await h.vm.retry()
+    assert.equal(attempts, 1)
+    assert.equal(h.vm.confirmed, false)
+    assert.equal(h.vm.error.response.data.code, 'p2p_maintenance')
   })
 
   it('requires manual Retry after repeated authentication failure without polling or visibility retries', async () => {
@@ -1309,7 +1413,8 @@ function strictChatHarness () {
     'global/getWallet': () => ({ walletHash: state.hash }),
     get 'global/getWalletIndex' () { return state.index },
     get 'global/isChipnet' () { return state.chipnet },
-    get 'ramp/getUser' () { return { id: state.id, user_type: state.role, is_arbiter: state.role === 'arbiter' } }
+    get 'ramp/getUser' () { return { id: state.id, user_type: state.role, is_arbiter: state.role === 'arbiter', chatPreparation: state.chatPreparation } },
+    'ramp/chatIdentity': () => state.chatIdentity
   } }
   const client = axios.create({ baseURL: 'https://commerce.example/api', adapter: async config => {
     requests.push(config)
@@ -1326,7 +1431,7 @@ function strictChatHarness () {
     assertP2PIdentity: async (member, role) => {
       state.requestedRole = role
       if (state.verify) await state.verify()
-      return {}
+      return { chat_identity_id: state.linkedChatIdentityId }
     },
     SecureStoragePlugin: { get: async () => {
       if (state.storageRead) await state.storageRead()
@@ -1466,6 +1571,36 @@ describe('P2P one-time chat WebSocket tokens', () => {
       assert.equal(h.requests.length, 0)
     })
   }
+
+  it('allows a successfully recovered identity after login chat preparation failed', async () => {
+    const h = strictChatHarness()
+    h.state.chatPreparation = Promise.resolve(false)
+    h.state.chatIdentity = { id: 12, ref: 'chat-wallet-a' }
+    h.state.linkedChatIdentityId = 12
+    const url = new URL(await h.getAuthenticatedChatWsUrl('wss://commerce.example/ws/chat/sessions/test/', 'peer'))
+    assert.equal(url.searchParams.get('ws_auth_token'), 'synthetic-ticket-1')
+    assert.equal(h.requests.length, 1)
+    assert(h.requests[0].headers['X-Chat-Identity'])
+  })
+
+  for (const identity of [null, { id: 99, ref: 'chat-wallet-a' }, { id: 12, ref: 'chat-another-wallet' }]) {
+    it(`still rejects a failed warmup without a matching recovered identity: ${JSON.stringify(identity)}`, async () => {
+      const h = strictChatHarness()
+      h.state.chatPreparation = Promise.resolve(false)
+      h.state.chatIdentity = identity
+      h.state.linkedChatIdentityId = 12
+      await assert.rejects(h.getAuthenticatedChatWsUrl('wss://commerce.example/ws/chat/sessions/test/', 'peer'), /setup is unavailable/)
+      assert.equal(h.requests.length, 0)
+    })
+  }
+
+  it('rejects a recovered identity if its registered account link is absent', async () => {
+    const h = strictChatHarness()
+    h.state.chatPreparation = Promise.resolve(false)
+    h.state.chatIdentity = { id: 12, ref: 'chat-wallet-a' }
+    await assert.rejects(h.getAuthenticatedChatWsUrl('wss://commerce.example/ws/chat/sessions/test/', 'peer'), /setup is unavailable/)
+    assert.equal(h.requests.length, 0)
+  })
 
   it('rejects the wrong account type before requesting a token', async () => {
     const h = strictChatHarness()
@@ -3656,7 +3791,10 @@ describe('P2P post-release chat and feedback', () => {
   it('prevents concurrent chat loads while the first request is pending', async () => {
     let finish
     let loads = 0
-    const load = method('src/pages/apps/exchange/peer_to_peer/order.vue', 'loadChatData')
+    const load = method('src/pages/apps/exchange/peer_to_peer/order.vue', 'loadChatData', {
+      fetchChatMembers: async () => [], fetchChatPubkeys: async () => [],
+      fetchChatMessages: async () => ({ results: [] })
+    })
     const vm = {
       chatRef: 'synthetic-chat', chatLoaded: false, chatLoading: false,
       chatSetupScope: () => 'test-scope', initializeChat: async () => true,
@@ -5494,4 +5632,187 @@ describe('P2P availability failure classification', () => {
       await assert.rejects(fetchP2PAvailability(client), error => error === failure)
     }
   })
+})
+
+
+describe('P2P chat key loading concurrency', () => {
+  function method (name, bindings = {}) {
+    const source = readFileSync('src/pages/apps/exchange/peer_to_peer/order.vue', 'utf8')
+    const start = source.indexOf(`    async ${name} (`)
+    const end = source.indexOf('\n    },', start) + 7
+    return new Function(...Object.keys(bindings), `return { ${source.slice(start, end)} }`)(...Object.values(bindings))[name]
+  }
+
+  it('fetches messages while the key is still loading and waits for it before decrypting', async () => {
+    const events = []
+    let finishKey
+    const vm = {
+      chatRef: 'synthetic-chat', chatSetupScope: () => 'current-chat', chatMessages: [],
+      initializeChat: async () => true,
+      loadKeyPair: () => new Promise(resolve => { finishKey = resolve }),
+      decryptChatMessages: async () => events.push('decrypt'), decryptChatAttachments: async () => {},
+      ensureChatWebSocket () {}, $nextTick () {}
+    }
+    const load = method('loadChatData', {
+      fetchChatMembers: async () => [], fetchChatPubkeys: async () => [],
+      fetchChatMessages: async () => { events.push('messages'); return { results: [] } }
+    })
+    const pending = load.call(vm)
+    await new Promise(resolve => setImmediate(resolve))
+    assert.deepEqual(events, ['messages'])
+    assert.equal(vm.chatLoaded, undefined)
+    finishKey()
+    await pending
+    assert.deepEqual(events, ['messages', 'decrypt'])
+    assert.equal(vm.chatLoaded, true)
+  })
+
+  it('discards a key that finishes loading after the active wallet or order changes', async () => {
+    let finish
+    let scope = 'wallet-order-a'
+    const currentKey = { privkey: 'synthetic-current-key' }
+    const vm = { keypair: currentKey, chatSetupScope: () => scope }
+    const load = method('loadKeyPair', {
+      Store: { getters: { 'global/getWalletIndex': 0 } },
+      getEncryptionKeypairFromMnemonic: () => new Promise(resolve => { finish = resolve })
+    })
+    const pending = load.call(vm)
+    scope = 'wallet-order-b'
+    finish({ privkey: 'synthetic-obsolete-key' })
+    await pending
+    assert.equal(vm.keypair, currentKey)
+  })
+})
+
+
+describe('P2P order opening latency', () => {
+  function method (name, bindings = {}) {
+    const source = readFileSync('src/pages/apps/exchange/peer_to_peer/order.vue', 'utf8')
+    const start = source.indexOf(`    async ${name} (`)
+    const end = source.indexOf('\n    },', start) + 7
+    return new Function(...Object.keys(bindings), `return { ${source.slice(start, end)} }`)(...Object.values(bindings))[name]
+  }
+
+  it('loads independent order details concurrently while keeping actions behind complete initialization', async () => {
+    const started = []
+    const finishes = []
+    const pendingRequest = name => () => {
+      started.push(name)
+      return new Promise(resolve => finishes.push(resolve))
+    }
+    const vm = {
+      order: { id: 24, contract: 1 }, fetchOrder: async () => {},
+      generateContract: pendingRequest('contract'), fetchAd: pendingRequest('ad'),
+      fetchFeedback: pendingRequest('feedback'), fetchStatusList: pendingRequest('history'),
+      fetchCounterpartyTradeStats () {}, ensureChatCloseCountdownTimer () {}
+    }
+    const pending = method('loadData').call(vm)
+    await new Promise(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['contract', 'ad', 'feedback', 'history'])
+    assert.equal(vm.isloaded, undefined)
+    finishes.forEach(finish => finish())
+    await pending
+    assert.equal(vm.isloaded, true)
+    assert.equal(vm.loadingData, false)
+  })
+
+  it('fetches contract fees and parameters concurrently before constructing the contract', async () => {
+    let finishFees
+    let finishContract
+    let constructions = 0
+    const vm = {
+      fetchFees: () => new Promise(resolve => { finishFees = () => { vm.fees = { breakdown: {} }; resolve() } }),
+      fetchContract: () => new Promise(resolve => { finishContract = () => { vm.contract = { pubkeys: {}, addresses: {}, timestamp: 1 }; resolve() } })
+    }
+    const generate = method('generateContract', { RampContract: class { constructor () { constructions++ } } })
+    const pending = generate.call(vm)
+    assert.equal(typeof finishFees, 'function')
+    assert.equal(typeof finishContract, 'function')
+    assert.equal(constructions, 0)
+    finishFees()
+    finishContract()
+    await pending
+    assert.equal(constructions, 1)
+    assert(vm.escrowContract)
+  })
+})
+
+
+describe('P2P maintenance banner request isolation', () => {
+  for (const data of [{ detail: 'Service unavailable' }, { code: 'p2p_maintenance', feature: 'P2P_MAINTENANCE' }]) {
+    it(`does not block authenticated access after a banner-only request fails: ${JSON.stringify(data)}`, async () => {
+      const h = identityHarness({ availabilityClassifier: isP2PAvailabilityError })
+      h.fail({ response: { status: 503, data } })
+      await assert.rejects(h.client.get('/ramp-p2p/feature-control/', {
+        authorize: false, p2pMaintenanceIndicator: true
+      }))
+      assert.deepEqual(h.events, [])
+      assert.equal(h.requests[0].headers.Authorization, undefined)
+    })
+  }
+
+  for (const [url, authorize] of [['/ramp-p2p/order/7/', false], ['/ramp-p2p/feature-control/', 'peer']]) {
+    it(`still blocks authoritative availability failures for ${url} with authorize=${authorize}`, async () => {
+      const h = identityHarness({ availabilityClassifier: isP2PAvailabilityError })
+      h.fail({ response: { status: 503, data: { code: 'p2p_maintenance', feature: 'P2P_MAINTENANCE' } } })
+      await assert.rejects(h.client.get(url, { authorize, p2pMaintenanceIndicator: true }))
+      assert.deepEqual(h.events, ['p2p-unavailable'])
+    })
+  }
+})
+
+
+describe('P2P order list loading', () => {
+  function load (vm) {
+    const source = readFileSync('src/components/ramp/fiat/OrderListings.vue', 'utf8')
+    const start = source.indexOf('    async resetAndRefetchListings () {')
+    const end = source.indexOf('\n    },', start) + 7
+    const methods = new Function('setTimeout', `return { ${source.slice(start, end)} }`)(() => {
+      throw new Error('Order lists should not add an artificial loading delay')
+    })
+    return methods.resetAndRefetchListings.call(vm)
+  }
+
+  it('shows returned orders immediately after the fetch completes', async () => {
+    let finish
+    const vm = {
+      $store: { commit () {} }, listings: [{ id: 24 }],
+      fetchOrders: () => new Promise(resolve => { finish = resolve })
+    }
+    const pending = load(vm)
+    assert.equal(vm.loading, true)
+    finish()
+    await pending
+    assert.equal(vm.loading, false)
+    assert.equal(vm.displayEmptyList, true)
+    assert.deepEqual(vm.localListings, [{ id: 24 }])
+  })
+
+  it('clears loading if fetching orders fails', async () => {
+    const vm = {
+      $store: { commit () {} },
+      fetchOrders: async () => { throw new Error('Synthetic failure') }
+    }
+    await assert.rejects(load(vm), /Synthetic failure/)
+    assert.equal(vm.loading, false)
+  })
+})
+
+
+describe('P2P availability transport errors', () => {
+  for (const [failure, reason] of [
+    [{ code: 'ECONNABORTED', message: 'timeout of 10000ms exceeded' }, 'timeout'],
+    [{ code: 'ERR_NETWORK', message: 'Network Error' }, 'connection']
+  ]) {
+    it(`reports ${reason} failure without describing it as maintenance`, async () => {
+      await assert.rejects(fetchP2PAvailability({ get: async () => { throw failure } }), error => {
+        assert.equal(error.response.data.code, 'p2p_availability_unverified')
+        assert.equal(error.response.data.reason, reason)
+        const message = p2pAvailabilityMessage((key, args, fallback) => fallback, error)
+        assert.equal(message.toLowerCase().includes('maintenance'), false)
+        assert.match(message, reason === 'timeout' ? /timed out/ : /Could not reach/)
+        return true
+      })
+    })
+  }
 })

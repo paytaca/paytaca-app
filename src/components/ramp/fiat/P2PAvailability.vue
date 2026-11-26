@@ -3,7 +3,7 @@
     <q-dialog :model-value="!!error" persistent>
       <q-card class="pt-card text-bow text-center q-pa-md" :class="$store.getters['darkmode/getStatus'] ? 'dark' : 'light'" :dark="$store.getters['darkmode/getStatus']" style="width: 360px; max-width: 90vw;">
         <q-card-section>
-          <q-icon name="engineering" size="56px" color="primary" />
+          <q-icon :name="['timeout', 'connection'].includes(error?.response?.data?.reason) ? 'wifi_off' : 'engineering'" size="56px" color="primary" />
           <div class="text-body1 q-mt-md" role="alert">{{ message }}</div>
         </q-card-section>
         <q-card-actions align="center">
@@ -75,7 +75,6 @@ export default {
       this.retryTimer = null
       this.requestPending = false
       this.confirmed = false
-      this.maintenanceActive = null
       this.checking = false
       this.error = this.authenticationError || null
       this.$store.commit('ramp/updateFeatureToggles', null)
@@ -122,6 +121,7 @@ export default {
       try {
         const response = await backend.get('/ramp-p2p/feature-control/', {
           authorize: false,
+          p2pMaintenanceIndicator: true,
           params: { _fresh: Date.now() },
           timeout: 10000,
           skipAbortManager: true,
@@ -153,7 +153,14 @@ export default {
       this.checking = true
       this.refreshMaintenanceStatus(epoch)
       try {
-        const controls = await fetchP2PAvailability(backend, undefined, { skipAbortManager: true, userType: this.userType })
+        const check = () => fetchP2PAvailability(backend, undefined, { skipAbortManager: true, userType: this.userType })
+        let controls
+        try {
+          controls = await check()
+        } catch (error) {
+          if (!isCurrent() || !this.confirmed || !['timeout', 'connection'].includes(error?.response?.data?.reason)) throw error
+          controls = await check()
+        }
         if (!isCurrent()) return
         this.$store.commit('ramp/updateFeatureToggles', controls)
         const recovering = !this.confirmed

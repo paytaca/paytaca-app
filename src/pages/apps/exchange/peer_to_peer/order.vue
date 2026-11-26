@@ -1077,15 +1077,15 @@ export default {
         const vm = this
         await vm.fetchOrder('loadData')
         if (!vm.disposed && vm.isChatEnabled) vm.initializeChat()
+        const requests = []
         if (vm.order.contract && !vm.escrowContract) {
-          await vm.generateContract()
+          requests.push(vm.generateContract())
         } else if (vm.order.contract && !vm.contract?.address) {
-          await vm.generateContract(true)
+          requests.push(vm.generateContract(true))
         }
-        await vm.fetchAd()
-        await vm.fetchFeedback()
+        requests.push(vm.fetchAd(), vm.fetchFeedback(), vm.fetchStatusList())
         vm.fetchCounterpartyTradeStats()
-        await vm.fetchStatusList() // Load status history
+        await Promise.all(requests)
         if (vm.disposed) return
         vm.ensureChatCloseCountdownTimer()
         
@@ -1171,11 +1171,15 @@ export default {
 
     // Chat Tab Methods
     async loadKeyPair () {
+      const scope = this.chatSetupScope()
       try {
         // Always derive fresh from mnemonic for cross-platform consistency
         const walletIndex = Store.getters['global/getWalletIndex']
-        this.keypair = await getEncryptionKeypairFromMnemonic(walletIndex)
+        const keypair = await getEncryptionKeypairFromMnemonic(walletIndex)
+        if (this.disposed || this.chatSetupScope() !== scope) return
+        this.keypair = keypair
       } catch (error) {
+        if (this.disposed || this.chatSetupScope() !== scope) return
         console.error('Failed to load keypair from mnemonic:', error)
         this.keypair = {}
       }
@@ -1294,14 +1298,12 @@ export default {
 
       try {
         if (!await this.initializeChat()) return
-        await this.loadKeyPair()
-        if (this.disposed || this.chatSetupScope() !== scope) return
-
         // Fetch chat members (use cached from fetchChatUnread if available)
         const [members, pubkeys, response] = await Promise.all([
           this.chatMembersRaw || fetchChatMembers(this.chatRef),
           fetchChatPubkeys(this.chatRef),
-          fetchChatMessages(this.chatRef, 0, 10)
+          fetchChatMessages(this.chatRef, 0, 10),
+          this.loadKeyPair()
         ])
         if (this.disposed || this.chatSetupScope() !== scope) return
         this.chatMembersRaw = null
@@ -2227,8 +2229,7 @@ export default {
       const vm = this
       if (vm.escrowContract && !shouldReloadChildren) return
 
-      await vm.fetchFees()
-      await vm.fetchContract()
+      await Promise.all([vm.fetchFees(), vm.fetchContract()])
       
       if (!vm.contract) return
       

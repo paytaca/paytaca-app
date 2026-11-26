@@ -28,7 +28,11 @@ export async function fetchP2PAvailability (client, feature, { skipAbortManager 
     return assertP2PAvailable(response.data, feature)
   } catch (error) {
     if (isP2PAvailabilityError(error)) throw error
-    throw availabilityError()
+    const failure = availabilityError()
+    if (!error?.response && (error?.isAxiosError || ['ERR_NETWORK', 'ECONNABORTED', 'ETIMEDOUT'].includes(error?.code))) {
+      failure.response.data.reason = /timeout/i.test(error?.message || '') || error?.code === 'ETIMEDOUT' ? 'timeout' : 'connection'
+    }
+    throw failure
   }
 }
 
@@ -37,6 +41,14 @@ export function isP2PAvailabilityError (error) {
 }
 
 export function p2pAvailabilityMessage (t, error) {
+  if (error?.response?.data?.code === 'p2p_availability_unverified') {
+    if (error.response.data.reason === 'timeout') {
+      return t('P2PAvailabilityCheckTimedOut', {}, 'The P2P availability check timed out. Please retry.')
+    }
+    if (error.response.data.reason === 'connection') {
+      return t('P2PAvailabilityConnectionFailed', {}, 'Could not reach P2P to check availability. Please retry.')
+    }
+  }
   if (error?.response?.data?.code === 'p2p_maintenance') {
     return t('P2PUnderMaintenance', {}, 'P2P is temporarily under maintenance. Please try again later.')
   }
