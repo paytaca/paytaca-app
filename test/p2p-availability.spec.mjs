@@ -5049,3 +5049,122 @@ describe('P2P payment filter defaults', () => {
     for (const [, payload] of commits) assert.equal(payload.currency, 'All')
   })
 })
+
+
+describe('P2P chat loading latency', () => {
+  function method (name, bindings = {}) {
+    const source = readFileSync('src/pages/apps/exchange/peer_to_peer/order.vue', 'utf8')
+    const start = source.indexOf(`    async ${name} (`)
+    const end = source.indexOf('\n    },', start) + 7
+    return new Function(...Object.keys(bindings), `return { ${source.slice(start, end)} }`)(...Object.values(bindings))[name]
+  }
+
+  it('starts chat setup before waiting for unrelated order details', async () => {
+    const events = []
+    const vm = {
+      order: { id: 24 }, isChatEnabled: true,
+      fetchOrder: async () => events.push('order'),
+      initializeChat: () => { events.push('chat'); return new Promise(() => {}) },
+      fetchAd: async () => events.push('ad'), fetchFeedback: async () => {},
+      fetchCounterpartyTradeStats () {}, fetchStatusList: async () => {}, ensureChatCloseCountdownTimer () {}
+    }
+    await method('loadData').call(vm)
+    assert.deepEqual(events, ['order', 'chat', 'ad'])
+    assert.equal(vm.isloaded, true)
+  })
+
+  it('loads messages while the member and public-key requests are still pending', async () => {
+    const events = []
+    let finishMembers
+    let finishPubkeys
+    const load = method('loadChatData', {
+      fetchChatMembers: () => { events.push('members'); return new Promise(resolve => { finishMembers = resolve }) },
+      fetchChatPubkeys: () => { events.push('pubkeys'); return new Promise(resolve => { finishPubkeys = resolve }) },
+      fetchChatMessages: async () => { events.push('messages'); return { results: [], count: 0 } }
+    })
+    let scope = 'order-24'
+    const vm = {
+      chatRef: 'synthetic-chat', chatLoaded: false, chatLoading: false,
+      chatSetupScope: () => scope, initializeChat: async () => true, loadKeyPair: async () => {},
+      decryptChatMessages: async () => {}, decryptChatAttachments: async () => {},
+      ensureChatWebSocket () {}, $nextTick () {}
+    }
+    const pending = load.call(vm)
+    await new Promise(resolve => setImmediate(resolve))
+    assert.deepEqual(events, ['members', 'pubkeys', 'messages'])
+    assert.equal(vm.chatLoaded, false)
+    finishMembers([])
+    finishPubkeys([])
+    await pending
+    assert.equal(vm.chatLoaded, true)
+    assert.equal(vm.chatLoading, false)
+
+    events.length = 0
+    vm.chatLoaded = false
+    const stale = load.call(vm)
+    await new Promise(resolve => setImmediate(resolve))
+    scope = 'order-25'
+    finishMembers([])
+    finishPubkeys([])
+    await stale
+    assert.equal(vm.chatLoaded, false)
+  })
+})
+
+
+describe('P2P maintenance participant notices', () => {
+  function component (path) {
+    const source = readFileSync(path, 'utf8')
+    const script = source.match(/<script>([\s\S]*?)<\/script>/)[1]
+      .replace(/^import .*$/gm, '').replace('export default', 'return')
+    return new Function('getDarkModeClass', 'RampDragSlide', 'bus', script)(() => '', {}, {
+      emit () { throw new Error('Participant errors should stay visible in the escrow form') }
+    })
+  }
+  const escrow = component('src/components/ramp/fiat/EscrowTransfer.vue')
+
+  for (const role of ['buyer', 'seller', 'arbiter']) {
+    it(`identifies an unapproved ${role} and disables funding`, () => {
+      const participants = [{ role, name: 'Synthetic participant', allowed: false }]
+      const vm = { dragSlideOn: true, contractAddress: 'synthetic-contract', arbiterOptions: [{}] }
+      escrow.methods.handleRequestError.call(vm, {
+        response: { status: 400, data: { code: 'p2p_maintenance_participants', participants } }
+      })
+      assert.deepEqual(vm.maintenanceParticipants, participants)
+      assert.equal(vm.dragSlideOn, false)
+      assert.equal(escrow.computed.showDragSlide.call(vm), false)
+    })
+  }
+
+  it('blocks funding directly while a participant approval error is displayed', async () => {
+    await escrow.methods.escrowBch.call({ maintenanceParticipants: [{ role: 'arbiter', allowed: false }] })
+  })
+
+  it('does not guess which participant failed when using an older server', () => {
+    const vm = {}
+    escrow.methods.handleRequestError.call(vm, {
+      response: { status: 400, data: { error: 'Maintenance testing requires approved peers and arbiters.' } }
+    })
+    assert.deepEqual(vm.maintenanceParticipants, [])
+  })
+
+  it('ignores malformed participant eligibility instead of treating it as approved', () => {
+    const vm = {}
+    escrow.methods.handleRequestError.call(vm, {
+      response: { data: { code: 'p2p_maintenance_participants', participants: [null, { role: 'seller', allowed: 'true' }, { role: 'other', allowed: false }] } }
+    })
+    assert.deepEqual(vm.maintenanceParticipants, [])
+  })
+
+  it('keeps the global maintenance indicator separate from tester access', () => {
+    const screen = component('src/components/ramp/fiat/P2PAvailability.vue')
+    const controls = { P2P_MAINTENANCE: false, P2P_MAINTENANCE_ACTIVE: true }
+    const vm = { $store: { getters: { 'ramp/featureToggles': controls } } }
+    assert.equal(screen.computed.maintenanceActive.call(vm), true)
+    assert.doesNotThrow(() => assertP2PAvailable(controls))
+    controls.P2P_MAINTENANCE_ACTIVE = false
+    assert.equal(screen.computed.maintenanceActive.call(vm), false)
+    vm.$store.getters['ramp/featureToggles'] = null
+    assert.equal(screen.computed.maintenanceActive.call(vm), false)
+  })
+})

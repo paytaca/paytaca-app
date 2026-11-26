@@ -1076,6 +1076,7 @@ export default {
       try {
         const vm = this
         await vm.fetchOrder('loadData')
+        if (!vm.disposed && vm.isChatEnabled) vm.initializeChat()
         if (vm.order.contract && !vm.escrowContract) {
           await vm.generateContract()
         } else if (vm.order.contract && !vm.contract?.address) {
@@ -1092,7 +1093,6 @@ export default {
           this.activeTab = 'chat'
         }
         vm.isloaded = true
-        if (vm.isChatEnabled) vm.initializeChat()
       } catch (error) {
         console.error(error)
       } finally {
@@ -1298,7 +1298,11 @@ export default {
         if (this.disposed || this.chatSetupScope() !== scope) return
 
         // Fetch chat members (use cached from fetchChatUnread if available)
-        const members = this.chatMembersRaw || await fetchChatMembers(this.chatRef)
+        const [members, pubkeys, response] = await Promise.all([
+          this.chatMembersRaw || fetchChatMembers(this.chatRef),
+          fetchChatPubkeys(this.chatRef),
+          fetchChatMessages(this.chatRef, 0, 10)
+        ])
         if (this.disposed || this.chatSetupScope() !== scope) return
         this.chatMembersRaw = null
         if (members?.length) {
@@ -1314,15 +1318,11 @@ export default {
         }
 
         // Fetch chat pubkeys
-        const pubkeys = await fetchChatPubkeys(this.chatRef)
-        if (this.disposed || this.chatSetupScope() !== scope) return
         if (pubkeys?.length) {
           this.chatPubkeys = pubkeys
         }
 
         // Fetch and decrypt messages
-        const response = await fetchChatMessages(this.chatRef, 0, 10)
-        if (this.disposed || this.chatSetupScope() !== scope) return
         // console.log('[Chat Pagination] API response:', { 
         //   count: response?.count, 
         //   next: response?.next, 

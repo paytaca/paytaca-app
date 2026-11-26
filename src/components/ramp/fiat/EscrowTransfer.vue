@@ -2,16 +2,31 @@
   <div
     class="escrow-transfer-container q-pt-sm q-mx-md text-bow"
     :class="getDarkModeClass(darkMode)">
-    <div v-if="availabilityFailure || loadFailure" class="pt-card q-pa-md q-mb-md br-15 p2p-feature-notice" :class="darkMode ? 'dark' : 'light'" role="alert">
+    <div v-if="availabilityFailure || loadFailure || maintenanceParticipants" class="pt-card q-pa-md q-mb-md br-15 p2p-feature-notice" :class="darkMode ? 'dark' : 'light'" role="alert">
       <div class="row no-wrap items-start">
         <q-icon name="info" color="blue" size="md" class="col-auto q-mr-md q-mt-xs" />
         <div class="col text-weight-medium">
-          {{ availabilityFailure ? availabilityMessage : $t('P2PLoadFailed', {}, 'Unable to load this order. Please retry.') }}
-          {{ $t('RefreshToCheckAgain', {}, 'Refresh the page to check again.') }}
+          {{ maintenanceParticipants ? $t('P2PParticipantsNotApproved', {}, 'Escrow is unavailable because a participant is not approved for maintenance testing.') : availabilityFailure ? availabilityMessage : $t('P2PLoadFailed', {}, 'Unable to load this order. Please retry.') }}
+          <template v-if="maintenanceParticipants">
+            <q-list v-if="maintenanceParticipants.length" dense class="q-my-sm">
+              <q-item v-for="participant in maintenanceParticipants" :key="participant.role" class="q-px-none">
+                <q-item-section avatar>
+                  <q-icon :name="participant.allowed ? 'check_circle' : 'block'" :color="participant.allowed ? 'positive' : 'negative'" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>{{ maintenanceParticipantRole(participant.role) }}<span v-if="participant.name">: {{ participant.name }}</span></q-item-label>
+                  <q-item-label caption>{{ participant.allowed ? $t('Approved', {}, 'Approved') : $t('NotApproved', {}, 'Not approved') }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+            <div>{{ $t('P2PRequestParticipantApproval', {}, 'Ask an administrator to approve the participant for maintenance testing, then retry.') }}</div>
+            <q-btn unelevated color="primary" no-caps class="q-mt-sm" :label="$t('Retry', {}, 'Retry')" :loading="loading" @click="loadData" />
+          </template>
+          <template v-else>{{ $t('RefreshToCheckAgain', {}, 'Refresh the page to check again.') }}</template>
         </div>
       </div>
     </div>
-    <div v-if="!availabilityFailure && !loadFailure" class="q-mx-sm q-px-md">
+    <div v-if="!availabilityFailure && !loadFailure && !maintenanceParticipants" class="q-mx-sm q-px-md">
       
       <!-- Contract Information Section -->
       <div class="section-wrapper">
@@ -194,6 +209,7 @@ export default {
       disposed: false,
       availabilityFailure: null,
       loadFailure: false,
+      maintenanceParticipants: null,
       order: null,
       adData: null,
       selectedArbiter: null,
@@ -243,7 +259,7 @@ export default {
       return this.arbiterOptions?.length > 0
     },
     showDragSlide () {
-      return (!this.loading && !this.loadFailure && !this.availabilityFailure && this.dragSlideOn && this.arbiterOptions?.length > 0 && !this.sendingBch && this.contractAddress)
+      return (!this.loading && !this.loadFailure && !this.availabilityFailure && !this.maintenanceParticipants && this.dragSlideOn && this.arbiterOptions?.length > 0 && !this.sendingBch && this.contractAddress)
     },
     arbiterOptionsMessage () {
       return `No available arbiter found for currency ${this.order?.ad?.fiat_currency?.symbol}`
@@ -322,6 +338,7 @@ export default {
       if (this.loading || this.sendingBch) return
       this.loading = true
       this.loadFailure = false
+      this.maintenanceParticipants = null
       this.order = this.data.order
       try {
         const controls = await fetchP2PAvailability(backend, 'ORDER_ESCROW', { userType: 'peer' })
@@ -343,7 +360,7 @@ export default {
     },
     async escrowBch () {
       const vm = this
-      if (vm.disposed || vm.sendingBch || vm.loading || vm.loadFailure) return
+      if (vm.disposed || vm.sendingBch || vm.loading || vm.loadFailure || vm.maintenanceParticipants) return
       if (!vm.contractAddressMatch) {
         vm.sendErrors.push('Contract address mismatch')
         vm.dragSlideOn = true
@@ -506,6 +523,7 @@ export default {
         backend.post('/ramp-p2p/order/contract/', body, { headers: headers, authorize: true })
           .then(response => {
             vm.contractAddress = response.data?.address
+            vm.maintenanceParticipants = null
             resolve(response.data)
           })
           .catch(error => {
@@ -587,7 +605,25 @@ export default {
           throw error
         })
     },
+    maintenanceParticipantRole (role) {
+      const labels = {
+        buyer: this.$t('Buyer', {}, 'Buyer'),
+        seller: this.$t('Seller', {}, 'Seller'),
+        arbiter: this.$t('Arbiter', {}, 'Arbiter')
+      }
+      return labels[role]
+    },
     handleRequestError (error) {
+      const data = error?.response?.data
+      if (data?.code === 'p2p_maintenance_participants' ||
+          data?.error === 'Maintenance testing requires approved peers and arbiters.') {
+        this.maintenanceParticipants = Array.isArray(data.participants)
+          ? data.participants.filter(participant =>
+            ['buyer', 'seller', 'arbiter'].includes(participant?.role) && typeof participant.allowed === 'boolean')
+          : []
+        this.dragSlideOn = false
+        return
+      }
       bus.emit('handle-request-error', error)
     }
   }

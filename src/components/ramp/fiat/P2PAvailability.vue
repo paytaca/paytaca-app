@@ -15,7 +15,16 @@
     <div v-if="!confirmed && !error" class="flex flex-center" style="min-height: 100dvh;">
       <q-spinner size="md" color="primary" />
     </div>
-    <slot v-else-if="confirmed && !error" :key="screenKey" />
+    <template v-else-if="confirmed && !error">
+      <q-banner v-if="maintenanceActive" dense class="bg-amber-2 text-brown-10 p2p-maintenance-banner" role="status">
+        <template v-slot:avatar>
+          <q-icon name="engineering" />
+        </template>
+        <div class="text-weight-bold">{{ $t('P2PMaintenanceMode', {}, 'P2P maintenance mode') }}</div>
+        <div>{{ $t('P2PMaintenanceTestAccess', {}, 'Test access only. Buyer, seller and arbiter must be approved.') }}</div>
+      </q-banner>
+      <slot :key="screenKey" />
+    </template>
   </div>
 </template>
 <script>
@@ -34,6 +43,9 @@ export default {
     return { confirmed: false, requestEpoch: 0, checking: true, error: this.authenticationError || null, screenKey: 0, retryTimer: null, retryCount: 0, requestPending: false, disposed: false }
   },
   computed: {
+    maintenanceActive () {
+      return this.$store.getters['ramp/featureToggles']?.P2P_MAINTENANCE_ACTIVE === true
+    },
     message () {
       return p2pAvailabilityMessage(this.$t.bind(this), this.error)
     }
@@ -153,3 +165,11 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.p2p-maintenance-banner {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+</style>
