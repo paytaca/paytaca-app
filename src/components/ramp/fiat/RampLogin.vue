@@ -35,10 +35,10 @@
               dense
               hide-bottom-space
               bottom-slots
-              :hide-hint="!hintMessage"
+              :hide-hint="!hintMessage && !retrySeconds"
               :dark="darkMode"
               :readonly="!register || user?.is_arbiter"
-              :disable="loggingIn"
+              :disable="loggingIn || registering"
               :placeholder="register ? $t('EnterNickname') : ''"
               :loading="inputLoading"
               :error="errorMessage !== null"
@@ -49,13 +49,13 @@
               <template v-slot:append>
                 <!-- <q-btn v-if="!register" round dense flat icon="logout" @click="revokeAuth"/> -->
                 <!-- <q-btn v-if="!register && usernickname" disable round dense flat icon="swap_horiz" /> -->
-                <q-btn v-if="register && !inputLoading" round dense flat icon="send" :disable="!isValidNickname || user?.is_arbiter" @click="onRegisterUser" />
+                <q-btn v-if="register && !inputLoading" round dense flat icon="send" :disable="!isValidNickname || user?.is_arbiter || registering || retrySeconds > 0" @click="onRegisterUser" />
               </template>
               <template v-slot:hint>
-                <div class="row justify-center text-center">{{ hintMessage }}</div>
+                <div class="row justify-center text-center">{{ retrySeconds ? $t('RegistrationRetryIn', { seconds: retrySeconds }, `Retry in ${retrySeconds}s`) : hintMessage }}</div>
               </template>
               <template v-slot:error>
-                <div class="row justify-center text-center">{{ errorMessage }}</div>
+                <div class="row justify-center text-center">{{ errorMessage }}<span v-if="retrySeconds">&nbsp;{{ $t('RegistrationRetryIn', { seconds: retrySeconds }, `Retry in ${retrySeconds}s`) }}</span></div>
               </template>
             </q-input>
           </div>
@@ -66,7 +66,7 @@
 </template>
 <script>
 import { wallet } from 'src/exchange/wallet'
-import { backend } from 'src/exchange/backend'
+import { registerP2PAccount, getRegistrationRetrySeconds } from 'src/exchange/backend'
 import { loadAuthenticatedUser } from 'src/exchange/auth'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { bus } from 'src/wallet/event-bus'
@@ -82,6 +82,10 @@ export default {
       isLoading: true,
       register: false,
       loggingIn: false,
+      registering: false,
+      registrationVersion: 0,
+      retrySeconds: 0,
+      retryTimer: null,
       errorMessage: null,
       hintMessage: null
     }
@@ -96,28 +100,35 @@ export default {
   },
   computed: {
     isValidNickname () {
-      return this.usernickname && this.usernickname.length > 0
+      return typeof this.usernickname === 'string' && this.usernickname.trim().length > 0 && this.usernickname.length <= 15
+    },
+    registrationIdentity () {
+      return JSON.stringify([
+        this.$store.getters['global/getWallet']('bch')?.walletHash,
+        this.$store.getters['global/getWalletIndex'],
+        this.$store.getters['global/isChipnet'],
+        this.user?.is_arbiter, this.user?.user_type
+      ])
     },
     inputLoading () {
-      return this.loggingIn || (!this.usernickname && !this.register) || this.isLoading
+      return this.loggingIn || this.registering || (!this.usernickname && !this.register) || this.isLoading
     }
   },
   watch: {
-    loggingIn (value) {
-      // Removed loading gif since skeleton loaders are used
-      // if (value && !this.register) {
-      //   this.$q.loading.show()
-      // }
-      // if (!value) {
-      //   setTimeout(() => {
-      //     this.$q.loading.hide()
-      //   }, 1500)
-      // }
-    }
+    usernickname: { flush: 'sync', handler () { this.registrationVersion++ } },
+    registrationIdentity: { flush: 'sync', handler () { this.registrationVersion++ } }
   },
   created () {
     bus.on('next-login-step', this.onNextLoginStep)
     bus.on('logging-in', this.onLoggingIn)
+    this.retrySeconds = getRegistrationRetrySeconds()
+    this.retryTimer = setInterval(() => { this.retrySeconds = getRegistrationRetrySeconds() }, 1000)
+  },
+  beforeUnmount () {
+    this.registrationVersion++
+    clearInterval(this.retryTimer)
+    bus.off('next-login-step', this.onNextLoginStep)
+    bus.off('logging-in', this.onLoggingIn)
   },
   async mounted () {
     if (this.error) this.errorMessage = this.error
@@ -140,52 +151,51 @@ export default {
         // Only notify the app to refetch data after a successful login.
         // Emitting on unmount can cause refresh loops if the dialog is closed/cancelled.
         bus.emit('relogged')
+        return true
       } catch (error) {
-        if (!error.response) {
+        if (error.code === 'p2p_identity_mismatch') {
+          this.errorMessage = error.message
+        } else if (!error.response) {
           bus.emit('network-error')
-        } else if (error.response.status === 404) {
+        } else if (error.code === 'p2p_account_missing' || error.response.status === 404) {
           this.register = true
+        } else {
+          this.errorMessage = this.getErrorMessageByType(error)
         }
+      } finally {
+        this.isLoading = false
       }
-      this.isLoading = false
     },
     async onRegisterUser () {
+      if (this.registering || this.loggingIn || this.isLoading || !this.isValidNickname || this.user?.is_arbiter || getRegistrationRetrySeconds()) return
+      this.registering = true
       this.loggingIn = true
-      await this.registerUser()
-      await this.loadUser(true)
-      this.loggingIn = false
-      this.register = false
+      try {
+        await this.registerUser()
+        if (await this.loadUser(true)) this.register = false
+      } catch (error) {
+        console.error('P2P registration failed:', error?.response?.status || error?.code || 'Registration failed')
+        this.handleError(error)
+      } finally {
+        this.retrySeconds = getRegistrationRetrySeconds()
+        this.registering = false
+        this.loggingIn = false
+      }
     },
     async registerUser () {
-      const vm = this
-      vm.errorMessage = null
-      const libauthWallet = wallet.wallet
-      const timestamp = Date.now()
-      const addressPath = wallet.addressPath()
-      const privkey = libauthWallet.getPrivateKeyWifAt(addressPath)
-      const pubkey = libauthWallet.getPubkeyAt(addressPath)
-      const address = libauthWallet.getAddressAt({ path: addressPath })
-      const signature = wallet.signMessage(privkey, 'PEER_CREATE', timestamp)
-      const headers = {
-        timestamp: timestamp,
-        signature: signature,
-        'public-key': pubkey
-      }
+      if (!this.isValidNickname || this.user?.is_arbiter) throw new Error('Please enter a valid nickname.')
+      this.errorMessage = null
+      const version = this.registrationVersion
+      const nickname = this.usernickname
+      const identity = this.registrationIdentity
       const body = {
-        name: vm.usernickname,
-        address: address,
-        address_path: addressPath
+        name: nickname,
+        address: wallet.address(),
+        address_path: wallet.addressPath()
       }
-      await backend.post('/ramp-p2p/peer/', body, { headers: headers })
-        .then((response) => {
-          vm.user = response.data
-          vm.$store.commit('ramp/updateUser', vm.user)
-          console.log('Created user:', vm.user)
-        })
-        .catch(error => { vm.handleError(error) })
+      await registerP2PAccount('peer', body, () => version === this.registrationVersion && nickname === this.usernickname && identity === this.registrationIdentity)
     },
     handleError (error) {
-      console.error(error)
       if (this.isNetworkError(error)) {
         bus.emit('network-error')
       }
@@ -196,10 +206,10 @@ export default {
     getErrorMessageByType (error) {
       if (this.isNetworkError(error)) {
         return 'Network error'
-      } else if (this.isRequestError()) {
+      } else if (this.isRequestError(error)) {
         return `${error.response.status} ${error.response.data?.error}`
       } else {
-        return error
+        return error.message || 'Registration failed. Please try again.'
       }
     },
     isNetworkError (error) {

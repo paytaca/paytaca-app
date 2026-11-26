@@ -250,7 +250,8 @@ export default {
       
       // Prevent duplicate rapid requests
       const now = Date.now()
-      if (vm.lastFetchTime && (now - vm.lastFetchTime) < vm.minFetchInterval) {
+      if (vm.lastFetchTime && (now - vm.lastFetchTime) < vm.minFetchInterval &&
+          vm.fetchAbortController && !vm.fetchAbortController.signal.aborted) {
         console.log('Skipping fetch - too soon after last request')
         return
       }
@@ -259,7 +260,8 @@ export default {
       if (vm.fetchAbortController) {
         vm.fetchAbortController.abort()
       }
-      vm.fetchAbortController = new AbortController()
+      const controller = new AbortController()
+      vm.fetchAbortController = controller
       
       vm.loading = true
       vm.lastFetchTime = now
@@ -270,19 +272,22 @@ export default {
         const data = await vm.$store.dispatch('ramp/fetchAppeals', {
           appealState: vm.statusType?.toUpperCase(),
           params: params,
-          overwrite: overwrite
+          overwrite: overwrite,
+          signal: controller.signal
         })
         
-        if (data) {
+        if (data && !controller.signal.aborted) {
           vm.footerData.ongoingOrdersCount = data.ongoing_count
         }
       } catch (error) {
-        if (error.name !== 'AbortError') {
+        if (error.name !== 'AbortError' && !controller.signal.aborted) {
           this.handleRequestError(error)
         }
       } finally {
-        vm.loading = false
-        vm.fetchAbortController = null
+        if (vm.fetchAbortController === controller) {
+          vm.loading = false
+          vm.fetchAbortController = null
+        }
       }
     },
     async loadMoreData () {

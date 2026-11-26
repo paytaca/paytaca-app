@@ -1,6 +1,16 @@
 <template>
   <div class="ad-form-container" :class="getDarkModeClass(darkMode)">
     <HeaderNav :title="`P2P Ramp`" backnavpath="/apps/exchange/peer-to-peer/ads" class="header-nav" />
+    <q-pull-to-refresh @refresh="refreshFeatureControls">
+    <div v-if="!adFeatureEnabled" class="pt-card q-pa-md q-ma-md br-15 p2p-feature-notice" :class="darkMode ? 'dark' : 'light'">
+      <div class="row no-wrap items-start">
+        <q-icon name="info" color="blue" size="md" class="col-auto q-mr-md q-mt-xs" />
+        <div class="col text-weight-medium">
+          {{ $t('P2PFeatureUnavailable', {}, 'This P2P action is temporarily unavailable. Do not fund previously generated contracts. Please try again later.') }}
+          {{ $t('RefreshToCheckAgain', {}, 'Refresh the page to check again.') }}
+        </div>
+      </div>
+    </div>
     <div v-if="currentStep === 1"
       class="text-bow"
       :class="getDarkModeClass(darkMode)">
@@ -33,7 +43,7 @@
         </div>
       </div>
       <div class="q-pt-sm" v-else>
-        <q-scroll-area :style="`height: ${minHeight}px`" style="overflow-y:auto;">
+        <q-scroll-area ref="adScrollArea" :style="`height: ${minHeight}px`" style="overflow-y:auto;" @touchstart="preventPull">
           <div class="q-px-md q-pb-md">
             <!-- Price Settings Section -->
             <div class="pt-card q-pa-md q-mb-md br-15" :class="darkMode ? 'dark' : 'light'">
@@ -347,7 +357,7 @@
 
             <!-- Action Button -->
             <q-btn
-              :disable="checkPostData()"
+              :disable="!adFeatureEnabled || authPending || submittingAd || checkPostData()"
               rounded
               unelevated
               no-caps
@@ -376,8 +386,9 @@
       @back="currentStep--"
     />
   </div>
-  <div v-if="currentStep === 3">
+  <div v-if="currentStep === 3 && adFeatureEnabled && !authPending">
     <DisplayConfirmation
+      :submitting="submittingAd"
       :post-data="confirmationData"
       :ptl="appealCooldown"
       :transaction-type="transactionType"
@@ -393,6 +404,7 @@
       v-on:back="openDialog = false"
     />
   </div>
+    </q-pull-to-refresh>
   </div>
 </template>
 <script>
@@ -446,6 +458,11 @@ export default {
   },
   data () {
     return {
+      submittingAd: false,
+      swipeStatus: false,
+      authPending: false,
+      formInitialized: false,
+      disposed: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       loading: false,
@@ -533,7 +550,8 @@ export default {
   },
   created () {
     bus.emit('hide-menu')
-    bus.on('relogged', this.loadFormData)
+    bus.on('relogged', this.onRelogged)
+    bus.on('session-expired', this.onSessionExpired)
   },
   watch: {
     setTradeLimitsInFiat (value) {
@@ -612,6 +630,10 @@ export default {
     }
   },
   computed: {
+    adFeatureEnabled () {
+      const feature = this.adsState === 'edit' ? 'AD_UPDATE' : 'AD_CREATE'
+      return this.$store.getters['ramp/featureToggles']?.[feature] === true
+    },
     themeColor () {
       const themeMap = {
         'glassmorphic-blue': 'blue-6',
@@ -682,31 +704,64 @@ export default {
     this.loadFormData()
   },
   beforeUnmount () {
+    this.disposed = true
+    bus.off('relogged', this.onRelogged)
+    bus.off('session-expired', this.onSessionExpired)
     this.closeWSConnection()
   },
   methods: {
     getDarkModeClass,
     parseFiatCurrency,
+    preventPull (event) {
+      const position = this.$refs.adScrollArea?.getScrollPercentage?.()
+      if (position?.top > 0) event.stopPropagation()
+    },
+    async refreshFeatureControls (done) {
+      try {
+        await this.$store.dispatch('ramp/fetchFeatureToggles')
+      } finally {
+        if (done) done()
+      }
+    },
+    onSessionExpired () {
+      this.authPending = true
+      this.swipeStatus = false
+    },
+    onRelogged () {
+      if (this.disposed) return
+      this.authPending = false
+      if (!this.formInitialized && !this.loading) this.loadFormData()
+    },
     async loadFormData () {
+      if (this.disposed || this.authPending || this.loading) return
       this.loading = true
-      this.getInitialMarketPrice()
-      // determine if form is edit or create
-      if (this.$route.name === 'p2p-ads-edit-form') {
-        await this.fetchAd()
-        this.transactionType = this.adData?.tradeType?.toUpperCase()
-        this.adsState = 'edit'
-      }
-      if (this.$route.name === 'p2p-ads-create-form') {
-        this.transactionType = this.$route.query?.type
-        this.adData.tradeType = this.transactionType?.toUpperCase()
-        this.adsState = 'create'
-      }
+      try {
+        this.getInitialMarketPrice()
+        // determine if form is edit or create
+        if (this.$route.name === 'p2p-ads-edit-form') {
+          await this.fetchAd()
+          if (this.authPending || this.disposed) return
+          this.transactionType = this.adData?.tradeType?.toUpperCase()
+          this.adsState = 'edit'
+        }
+        if (this.$route.name === 'p2p-ads-create-form') {
+          this.transactionType = this.$route.query?.type
+          this.adData.tradeType = this.transactionType?.toUpperCase()
+          this.adsState = 'create'
+        }
 
-      await this.fetchArbiters()
-      await this.getFiatCurrencies()
-      this.updatePriceValue(this.adData.priceType)
-      this.setupWebsocket()
-      this.loading = false
+        await this.fetchArbiters()
+        if (this.authPending || this.disposed) return
+        await this.getFiatCurrencies()
+        if (this.authPending || this.disposed) return
+        this.updatePriceValue(this.adData.priceType)
+        this.setupWebsocket()
+        this.formInitialized = !this.authPending
+      } catch (error) {
+        this.handleRequestError(error)
+      } finally {
+        this.loading = false
+      }
     },
     tradeAmountValidation (val) {
       if (!val) return 'This is required'
@@ -746,7 +801,8 @@ export default {
       this.$q.dialog({
         component: CurrencyFilterDialog,
         componentProps: {
-          fiatList: this.fiatCurrencies
+          fiatList: this.fiatCurrencies,
+          showExistingAdsNotice: this.adsState === 'create'
         }
       })
         .onOk(currency => {
@@ -773,7 +829,7 @@ export default {
         console.warn('Ad ID is missing, skipping fetchAd')
         return
       }
-      await backend.get(`/ramp-p2p/ad/${adId}/`, { authorize: true })
+      await backend.get(`/ramp-p2p/ad/${adId}/`, { authorize: 'peer' })
         .then(response => {
           const data = response.data
           vm.adData.tradeType = data.trade_type
@@ -825,13 +881,14 @@ export default {
     async createAd () {
       const vm = this
       const body = vm.transformPostData()
-      await backend.post('/ramp-p2p/ad/', body, { authorize: true })
+      await backend.post('/ramp-p2p/ad/', body, { authorize: 'peer' })
         .then(() => {
           vm.swipeStatus = true
         })
         .catch(error => {
           vm.handleRequestError(error)
           vm.swipeStatus = false
+          vm.currentStep = 3
         })
     },
     async updateAd () {
@@ -842,32 +899,26 @@ export default {
         console.warn('Ad ID is missing, skipping updateAd')
         return
       }
-      await backend.put(`/ramp-p2p/ad/${adId}/`, body, { authorize: true })
+      await backend.put(`/ramp-p2p/ad/${adId}/`, body, { authorize: 'peer' })
         .then(() => {
           vm.swipeStatus = true
         })
         .catch(error => {
           vm.handleRequestError(error)
           vm.swipeStatus = false
+          vm.currentStep = 3
         })
     },
     fetchArbiters () {
       return new Promise((resolve, reject) => {
         const vm = this
-        backend.get('/ramp-p2p/arbiter/', { params: { currency: vm.adData.fiatCurrency.symbol }, authorize: true })
+        backend.get('/ramp-p2p/arbiter/', { params: { currency: vm.adData.fiatCurrency.symbol }, authorize: 'peer' })
           .then(response => {
             vm.arbiterOptions = response.data
             resolve(response.data)
           })
           .catch(error => {
-            if (error.response) {
-              console.error(error.response)
-              if (error.response.status === 403) {
-                bus.emit('session-expired')
-              }
-            } else {
-              bus.emit('network-error')
-            }
+            vm.handleRequestError(error)
             reject(error)
           })
       })
@@ -875,14 +926,14 @@ export default {
     async getInitialMarketPrice () {
       const vm = this
       try {
-        const response = await backend.get('/ramp-p2p/utils/market-price/', { params: { currency: vm.selectedCurrency.symbol } })
+        const response = await backend.get('/ramp-p2p/utils/market-price/', { authorize: 'peer', params: { currency: vm.selectedCurrency.symbol } })
         vm.marketPrice = parseFloat(response.data?.price)
         if (vm.adsState === 'create') {
           vm.updatePriceValue(vm.adData.priceType)
         }
       } catch (error) {
         if (error.response) {
-          console.error(error.response)
+          console.error(error?.response?.status || error?.code || 'Request failed')
           if (error.response.status === 403) {
             bus.emit('session-expired')
           }
@@ -894,7 +945,7 @@ export default {
     async getFiatCurrencies () {
       const vm = this
       try {
-        const response = await backend.get('/ramp-p2p/ad/currency/', { params: { trade_type: vm.transactionType }, authorize: true })
+        const response = await backend.get('/ramp-p2p/ad/currency/', { params: { trade_type: vm.transactionType }, authorize: 'peer' })
         vm.fiatCurrencies = response.data
         
         // Check if there are no available currencies for this trade type
@@ -912,6 +963,10 @@ export default {
           vm.adData.fiatCurrency = vm.selectedCurrency
         }
       } catch (error) {
+        if (error?.code === 'p2p_auth_required' || error?.response?.status === 401) {
+          vm.handleRequestError(error)
+          return
+        }
         console.error(error)
         console.error(error.response)
 
@@ -931,17 +986,10 @@ export default {
     },
     async getPaymentMethods () {
       try {
-        const { data } = await backend.get('/ramp-p2p/payment-method/', { authorize: true })
+        const { data } = await backend.get('/ramp-p2p/payment-method/', { authorize: 'peer' })
         return data
       } catch (error) {
-        if (error.response) {
-          console.error(error.response)
-          if (error.response.status === 403) {
-            bus.emit('session-expired')
-          }
-        } else {
-          bus.emit('network-error')
-        }
+        this.handleRequestError(error)
       }
     },
     async nextStep (data) {
@@ -950,7 +998,8 @@ export default {
         this.adData.paymentMethods = data
       }
       if (currentStep === 3) {
-        this.onSubmit()
+        await this.onSubmit()
+        if (!this.swipeStatus) return
         await this.$router.push({ name: 'p2p-ads' })
         // await this.$router.push({ name: 'p2p-ads' })
       }
@@ -961,13 +1010,20 @@ export default {
     },
     async onSubmit () {
       const vm = this
-      switch (vm.adsState) {
-        case 'create':
-          await vm.createAd()
-          break
-        case 'edit':
-          await vm.updateAd()
-          break
+      if (!vm.adFeatureEnabled || vm.submittingAd || vm.authPending || vm.disposed) return
+      vm.submittingAd = true
+      vm.swipeStatus = false
+      try {
+        switch (vm.adsState) {
+          case 'create':
+            await vm.createAd()
+            break
+          case 'edit':
+            await vm.updateAd()
+            break
+        }
+      } finally {
+        vm.submittingAd = false
       }
     },
     async updateFiatCurrency () {
@@ -1164,13 +1220,23 @@ export default {
       }
     }, 500),
     handleRequestError (error) {
+      if (this.disposed || error?.code === 'ECONNABORTED') return
+      if (error?.code === 'p2p_auth_required' || error?.response?.status === 401) {
+        this.onSessionExpired()
+        bus.emit('session-expired')
+        return
+      }
+      if (['p2p_identity_mismatch', 'p2p_account_type_mismatch'].includes(error?.code)) {
+        this.$q.notify({ type: 'error', message: error.message, timeout: 5000 })
+        return
+      }
       if (error.response) {
-        console.error(error.response)
+        console.error('P2P ad request failed:', error.response.status)
         if (error.response.status === 403) {
           bus.emit('session-expired')
         }
       } else {
-        console.error(error)
+        console.error('P2P ad request failed:', error?.code || 'Network error')
         bus.emit('network-error')
       }
     }

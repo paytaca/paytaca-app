@@ -2,7 +2,7 @@
     <HeaderNav :title="`P2P Ramp`" :backnavpath="getBackNavigationPath" class="header-nav" />
     
     <!-- Skeleton Loader -->
-    <div v-if="!isloaded" class="text-bow order-page-container" :class="getDarkModeClass(darkMode)">
+    <div v-if="!orderLoaded" class="text-bow order-page-container" :class="getDarkModeClass(darkMode)">
       <!-- Order Header Skeleton -->
       <div class="skeleton-header">
         <q-skeleton type="text" width="150px" height="20px" class="q-mb-xs" style="margin: 0 auto;" />
@@ -42,7 +42,7 @@
       </div>
     </div>
 
-    <div v-if="isloaded" class="text-bow order-page-container" :class="getDarkModeClass(darkMode)">
+    <div v-if="orderLoaded" class="text-bow order-page-container" :class="getDarkModeClass(darkMode)">
       <!-- Order Header -->
       <div class="order-header" :class="getDarkModeClass(darkMode)">
         <div class="order-title">{{ headerTitle }}</div>
@@ -59,11 +59,11 @@
             class="order-tab-btn"
             :class="[
               darkMode ? 'dark' : '',
-              activeTab === 'details' ? 'active-tab-btn' : '',
+              selectedTab === 'details' ? 'active-tab-btn' : '',
               `theme-${theme}`
             ]"
-            :style="activeTab === 'details' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-            @click="activeTab = 'details'"
+            :style="selectedTab === 'details' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            @click="selectTab('details')"
           >
             {{ $t('Details', {}, 'Details') }}
           </button>
@@ -71,11 +71,12 @@
             class="order-tab-btn"
             :class="[
               darkMode ? 'dark' : '',
-              activeTab === 'history' ? 'active-tab-btn' : '',
+              selectedTab === 'history' ? 'active-tab-btn' : '',
               `theme-${theme}`
             ]"
-            :style="activeTab === 'history' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-            @click="activeTab = 'history'"
+            :style="selectedTab === 'history' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            :disabled="!isloaded"
+            @click="selectTab('history')"
           >
             {{ $t('History', {}, 'History') }}
             <q-badge v-if="order?.has_unread_status" color="red" floating rounded />
@@ -85,11 +86,12 @@
             class="order-tab-btn"
             :class="[
               darkMode ? 'dark' : '',
-              activeTab === 'chat' ? 'active-tab-btn' : '',
+              selectedTab === 'chat' ? 'active-tab-btn' : '',
               `theme-${theme}`
             ]"
-            :style="activeTab === 'chat' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
-            @click="activeTab = 'chat'"
+            :style="selectedTab === 'chat' ? `background-color: ${getThemeColor()} !important; color: #fff !important;` : ''"
+            :disabled="!isloaded"
+            @click="selectTab('chat')"
           >
             {{ $t('Chat', {}, 'Chat') }}
             <q-badge v-if="isChatEnabled && unreadChatCount > 0" color="red" floating rounded>
@@ -102,7 +104,7 @@
       <!-- Tab Panels -->
       <q-tab-panels
         v-model="activeTab"
-        animated
+        keep-alive
         :style="`height: ${scrollHeight}px`"
         class="order-tab-panels"
         :class="getDarkModeClass(darkMode)"
@@ -113,17 +115,23 @@
             <q-pull-to-refresh ref="pullToRefresh" @refresh="refreshPage">
             <div class="q-mx-md q-px-sm q-mb-sm">
             <TradeInfoCard
+              v-if="ad || order?.ad"
               :key="tradeInfoCardKey"
               :order="order"
-              :ad="ad"
+              :ad="ad || order?.ad"
               :counterparty-peer-data="counterpartyPeerData"
               type="order"
               @view-ad="showAdSnapshot=true"
               @view-peer="onViewPeer"
               @view-reviews="showReviews=true"/>
           </div>
-          <div class="component-wrapper">
+          <div v-if="!isloaded" class="q-pa-md" role="status" :aria-label="$t('Loading', {}, 'Loading')">
+            <q-skeleton type="rect" height="120px" class="br-15 q-mb-md" />
+            <q-skeleton type="rect" height="50px" class="br-15" />
+          </div>
+          <div v-if="isloaded && !paymentDetailsReminderRequired" class="component-wrapper">
           <EscrowTransfer
+            v-model:contract-info-open="contractInfoOpen"
             ref="escrowTransferRef"
             v-if="state === 'escrow-bch'"
             :key="escrowTransferKey"
@@ -136,6 +144,7 @@
             @cancel="cancellingOrder"
           />
           <VerifyTransaction
+            ref="verifyTransactionRef"
             v-if="state === 'tx-confirmation'"
             :key="verifyTransactionKey"
             :data="verifyTransactionData"
@@ -206,7 +215,7 @@
         </q-tab-panel>
 
         <!-- CHAT Tab -->
-        <q-tab-panel v-if="showChatTab" name="chat" class="q-pa-none chat-tab-panel" :class="{ 'input-hidden': isChatInputHidden }">
+        <q-tab-panel v-if="showChatTab" name="chat" class="q-pa-none chat-tab-panel">
           <div class="tab-content-wrapper chat-tab-content">
           <!-- Chat Disabled Notice (Before Escrow) -->
           <div v-if="!isChatEnabled" class="chat-disabled-notice">
@@ -223,6 +232,15 @@
             </q-banner>
           </div>
           
+          <div v-else-if="chatError" class="q-pa-md">
+            <q-banner rounded :class="getDarkModeClass(darkMode)">
+              {{ chatErrorMessage || $t('ChatUnavailableRetry', {}, 'Chat is temporarily unavailable. You can still view your order. Please retry loading chat.') }}
+              <template v-slot:action>
+                <q-btn flat color="primary" :label="$t('Retry', {}, 'Retry')" :loading="chatInitializing || chatLoading" @click="retryChat" />
+              </template>
+            </q-banner>
+          </div>
+
           <!-- Chat Loading -->
           <div v-else-if="chatMessages.length === 0 && !chatLoaded" class="q-pa-md">
             <div v-for="n in 4" :key="n" class="chat-message-skeleton q-mb-md">
@@ -313,12 +331,25 @@
                       />
                       <div 
                         v-else 
-                        class="row items-center q-pa-sm encrypted-attachment"
+                        class="encrypted-attachment"
                       >
-                        <div class="text-grey-6">
-                          <q-icon name="image" size="sm" class="q-mr-xs"/>
-                          {{ $t('DecryptingAttachment', {}, 'Decrypting attachment...') }}
-                          <q-spinner v-if="message?.$state?.decryptingAttachment" size="sm" class="q-ml-xs"/>
+                        <div class="attachment-cover" aria-hidden="true">
+                          <q-icon name="image" size="80px" />
+                        </div>
+                        <div class="attachment-reveal-action">
+                          <q-btn
+                            unelevated
+                            rounded
+                            no-caps
+                            color="primary"
+                            icon="visibility"
+                            :label="message?.$state?.attachmentError ? $t('Retry') : $t('ClickToReveal')"
+                            :loading="message?.$state?.decryptingAttachment || message?.$state?.fetchingAttachment"
+                            @click="decryptMessageAttachment(message)"
+                          />
+                          <div v-if="message?.$state?.attachmentError" class="text-caption q-mt-sm" role="alert">
+                            {{ $t('AttachmentRevealFailed', {}, 'Unable to open image. Please retry.') }}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -331,7 +362,7 @@
             <!-- Chat input -->
             <div 
               class="chat-input-wrapper" 
-              :class="[getDarkModeClass(darkMode), { 'chat-input-hidden': isChatInputHidden }]"
+              :class="getDarkModeClass(darkMode)"
             >
               <!-- 1-hour grace period countdown after release/cancel/refund -->
               <div v-if="chatGraceCountdownActive" class="chat-close-countdown" :class="getDarkModeClass(darkMode)">
@@ -361,6 +392,13 @@
                 </div>
               </q-banner>
 
+              <div v-if="attachmentSendStage || preparingChatAttachment" class="pt-card q-pa-sm q-mb-sm br-15" :class="getDarkModeClass(darkMode)" role="status" aria-live="polite">
+                <div class="row items-center text-caption q-mb-xs">
+                  <q-spinner size="sm" color="primary" class="q-mr-sm" />
+                  {{ attachmentSendStage !== 'uploading' ? $t('PreparingChatImage', {}, 'Preparing image…') : $t('UploadingChatImage', {}, 'Uploading image…') }}
+                </div>
+                <q-linear-progress indeterminate rounded color="primary" />
+              </div>
               <div v-if="canSendChatMessages" class="chat-input-container">
                 <q-btn
                   v-if="!chatAttachmentUrl"
@@ -395,7 +433,7 @@
                       :icon="sendingMessage ? 'sync' : 'send'" 
                       size="sm"
                       @click="sendChatMessage" 
-                      :disable="!chatMessageInput.trim() || sendingMessage || !canSendChatMessages"
+                      :disable="!chatMessageInput.trim() || preparingChatAttachment || sendingMessage || !canSendChatMessages"
                       :loading="sendingMessage"
                       class="send-button"
                     />
@@ -403,6 +441,11 @@
                 </q-input>
               </div>
               
+              <div v-if="chatAttachment && !chatMessageInput.trim()" class="pt-card q-pa-sm q-mt-sm br-15 text-caption" :class="getDarkModeClass(darkMode)" role="status" aria-live="polite">
+                <q-icon name="info" color="primary" class="q-mr-xs" />
+                {{ $t('ChatAttachmentMessageRequired', {}, 'Add a message to send this image.') }}
+              </div>
+
               <!-- Hidden file picker -->
               <q-file
                 v-show="false"
@@ -453,6 +496,24 @@
     </q-dialog>
     
     
+    <q-dialog :model-value="paymentDetailsReminderRequired" persistent>
+      <q-card class="q-pa-sm text-bow br-15" :class="getDarkModeClass(darkMode)" style="width: 400px; max-width: 90vw;">
+        <q-card-section class="text-h6">
+          {{ $t('CheckYourPaymentDetails', {}, 'Check your payment details') }}
+        </q-card-section>
+        <q-card-section>
+          {{ $t('OrderPaymentDetailsReminder', {}, 'Before continuing with this order, please confirm that your payment methods have the correct account name, account number, and other payment details. If anything is incorrect, update your payment methods before proceeding.') }}
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <q-checkbox v-model="suppressPaymentDetailsReminder" :label="$t('PaymentDetailsReminderDoNotShowAgain', {}, 'Do not show this again')" />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat no-caps :label="$t('ReviewPaymentMethods', {}, 'Review payment methods')" @click="reviewPaymentMethods" />
+          <q-btn flat no-caps :label="$t('Continue', {}, 'Continue')" @click="dismissPaymentDetailsReminder" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <!-- Dialogs -->
     <div v-if="openDialog" >
       <MiscDialogs
@@ -471,7 +532,7 @@
 <script>
 import { bchToFiat, formatCurrency, formatDate, satoshiToBch, formatOrderStatus } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend, getBackendWsUrl } from 'src/exchange/backend'
+import { backend, getBackendWsUrl, p2pErrorMessage } from 'src/exchange/backend'
 import { getChatBackendWsUrl } from 'src/exchange/chat/backend'
 import { updateChatMembers, generateChatRef, fetchChatSession, createChatSession, updateOrderChatSessionRef, fetchChatMessages, fetchChatMembers, fetchChatPubkeys, sendChatMessage as sendChatMessageAPI, updateLastRead, generateChatIdentityRef, loadChatIdentity } from 'src/exchange/chat'
 import { ChatMessage } from 'src/exchange/chat/objects'
@@ -502,6 +563,7 @@ import { orderLiveActivityManager } from 'src/services/order-live-activity'
 export default {
   data () {
     return {
+      disposed: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       isChipnet: this.$store.getters['global/isChipnet'],
@@ -510,11 +572,15 @@ export default {
         chat: null
       },
       wsFetchingOrder: false,
-      _fetchOrderLastTime: 0,
-      _fetchOrderInProgress: false,
+      orderUpdatePending: false,
+      contractUpdatePending: false,
+      contractInfoOpen: false,
+      fetchOrderInProgress: false,
+      orderRefreshPending: false,
       loadingData: false,
       state: '',
       isloaded: false,
+      orderLoaded: false,
       confirmType: '',
 
       dialogType: '',
@@ -564,16 +630,26 @@ export default {
       showStatusHistory: false,
       noticeType: 'info',
       showNoticeDialog: false,
+      suppressPaymentDetailsReminder: false,
       rewardNotified: false,
 
       // Tabs
       activeTab: 'details',
+      selectedTab: 'details',
+      tabSelectionFrame: null,
+      tabChangeFrame: null,
       
       // History Tab
       statusHistory: [],
 
       // Chat Tab
       chatLoaded: false,
+      chatLoading: false,
+      chatInitializing: false,
+      chatInitialization: null,
+      chatError: false,
+      chatErrorMessage: null,
+      chatReadyScope: null,
       chatMessages: [],
       chatMessageInput: '',
       chatAttachment: null,
@@ -584,6 +660,8 @@ export default {
       chatMembersRaw: null,
       chatPubkeys: [],
       sendingMessage: false,
+      attachmentSendStage: null,
+      preparingChatAttachment: false,
       addingNewMessage: false,
       arbiterIdentity: null,
       chatMessagesKey: 0,
@@ -597,10 +675,6 @@ export default {
       scrollHeightBeforeLoad: 0,
       scrollTopBeforeLoad: 0,
       
-      // Chat input scroll behavior
-      lastChatScrollY: 0,
-      isChatInputHidden: false,
-      chatScrollThreshold: 10,
       unreadChatCount: 0,
       
       // New message alert
@@ -638,6 +712,24 @@ export default {
   // REMOVED: Duplicate created() hook - merged into the one below
   // The new-message listener is now registered in the main created() hook
   computed: {
+    paymentDetailsReminderScope () {
+      return JSON.stringify([
+        this.$store.getters['global/getWallet']('bch')?.walletHash,
+        this.$store.getters['ramp/getUser']?.id,
+        this.order?.id
+      ])
+    },
+    paymentDetailsReminderRequired () {
+      const userId = this.$store.getters['ramp/getUser']?.id
+      const order = this.order
+      if (userId == null || !order?.id || !this.$store.getters['global/getWallet']('bch')?.walletHash) return false
+      if (order.members?.seller?.id !== userId) return false
+      if (!['SBM', 'CNF', 'ESCRW_PN', 'ESCRW', 'PD_PN', 'PD', 'APL', 'RLS_PN', 'RFN_PN'].includes(order.status?.value)) return false
+      const createdAt = Date.parse(order.ad?.ad_created_at)
+      if (!Number.isFinite(createdAt) || createdAt >= Date.parse('2026-11-23T16:00:00Z')) return false
+      const preference = this.$store.getters['ramp/paymentDetailsReminder'](userId)
+      return !preference.suppressed && !preference.dismissedOrderIds?.[order.id]
+    },
     chatScrollTarget () {
       return this.$refs.chatScrollTarget
     },
@@ -666,11 +758,6 @@ export default {
         height = height - 40
       } else if ((this.state === 'escrow-bch' && this.hasArbiters) || this.state === 'payment-confirmation') {
         height = height - 90
-      }
-      
-      // When on chat tab and input is hidden, extend height to bottom of screen
-      if (this.activeTab === 'chat' && this.isChatInputHidden) {
-        height = height + 100 // Add back the space normally reserved for input
       }
       
       return height
@@ -758,6 +845,7 @@ export default {
     },
 
     canSendChatMessages () {
+      if (!this.isloaded) return false
       // If order isn't released/cancelled, normal chat rules apply.
       if (!Number.isFinite(this.chatCloseStatusAtMs)) return this.isChatEnabled
       // If there is a closure timestamp, only allow sending during the grace period.
@@ -781,7 +869,7 @@ export default {
          case 'payment-confirmation':
            return this.confirmType === 'buyer' ? this.$t('PayFiat') : this.$t('ReleaseBCH')
          default:
-           return ''
+           return this.order?.status?.label || ''
        }
      },
       getBackNavigationPath () {
@@ -887,6 +975,9 @@ export default {
   },
   emits: ['back', 'refresh', 'view-ad'],
   watch: {
+    paymentDetailsReminderScope () {
+      this.suppressPaymentDetailsReminder = false
+    },
     reconnectingWebSocket () {
       this.reloadChildComponents()
     },
@@ -895,66 +986,21 @@ export default {
         this.onSendingBCH(false)
       }
     },
-    activeTab (newTab, oldTab) {
-      if (newTab === 'history') {
-        this.readOrderStatus()
-      } else if (newTab === 'chat') {
-        // Only load chat if escrow is complete
-        if (!this.isChatEnabled) {
-          return
+    activeTab: {
+      flush: 'post',
+      handler (newTab, oldTab) {
+        this.selectedTab = newTab
+        if (this.tabChangeFrame != null) cancelAnimationFrame(this.tabChangeFrame)
+        if (oldTab === 'chat' && newTab !== 'chat') {
+          this.$refs.chatScrollTarget?.removeEventListener('scroll', this.handleChatScroll)
         }
-        
-        // Re-establish chat websocket connection when entering chat tab
-        // This ensures both parties can receive messages even if one joined later
-        if (this.chatRef && this.websockets.chat) {
-          this.websockets.chat.closeConnection()
-          this.websockets.chat = new WebSocketManager()
-          this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
-          this.websockets.chat.subscribeToMessages(message => {
-            if (message?.type === 'new_message') {
-              const messageData = message.data
-              bus.emit('last-read-update')
-              bus.emit('new-message', messageData)
-            }
+        this.tabChangeFrame = requestAnimationFrame(() => {
+          this.tabChangeFrame = requestAnimationFrame(() => {
+            this.tabChangeFrame = null
+            if (this.disposed || this.activeTab !== newTab || this.selectedTab !== newTab) return
+            this.handleTabChange(newTab, oldTab)
           })
-        }
-        
-        if (!this.chatLoaded) {
-          this.loadChatData()
-        } else {
-          // Update last read when switching to chat tab
-          updateLastRead(this.chatRef, this.chatMessages)
-            .then(() => {
-              bus.emit('last-read-update')
-              // Refresh unread count after marking as read
-              this.fetchChatUnread(this.chatRef)
-            })
-            .catch(error => {
-              console.error('Error updating last read:', error)
-            })
-        }
-        
-        // Attach scroll listener for chat input hide/show
-        this.$nextTick(() => {
-          const scrollTarget = this.$refs.chatScrollTarget
-          if (scrollTarget) {
-            scrollTarget.addEventListener('scroll', this.handleChatScroll, { passive: true })
-          }
         })
-      } else if (oldTab === 'chat') {
-        // When leaving chat tab, refresh unread count (only if chat was enabled)
-        if (this.isChatEnabled) {
-          this.fetchChatUnread(this.chatRef)
-        }
-        
-        // Remove scroll listener when leaving chat
-        const scrollTarget = this.$refs.chatScrollTarget
-        if (scrollTarget) {
-          scrollTarget.removeEventListener('scroll', this.handleChatScroll)
-        }
-        
-        // Reset input visibility
-        this.isChatInputHidden = false
       }
     }
   },
@@ -962,16 +1008,21 @@ export default {
     bus.emit('hide-menu')
     bus.on('relogged', this.refreshPage)
     bus.on('update-status', this.handleNewStatus)
+    bus.on('websocket-disconnected', this.onChatDisconnected)
     
     // Register chat message listener
     bus.on('new-message', this.onNewMessage)
   },
   async mounted () {
     await this.loadData()
+    if (this.disposed) return
     this.setupWebSocket()
     this.ensureChatCloseCountdownTimer()
   },
   beforeUnmount () {
+    this.disposed = true
+    if (this.tabSelectionFrame != null) cancelAnimationFrame(this.tabSelectionFrame)
+    if (this.tabChangeFrame != null) cancelAnimationFrame(this.tabChangeFrame)
     this.closeWSConnection()
 
     if (this.chatCloseCountdownIntervalId) {
@@ -981,6 +1032,9 @@ export default {
     
     // Remove bus listeners
     bus.off('new-message', this.onNewMessage)
+    bus.off('relogged', this.refreshPage)
+    bus.off('update-status', this.handleNewStatus)
+    bus.off('websocket-disconnected', this.onChatDisconnected)
     
     // Remove chat scroll listener if it exists
     const scrollTarget = this.$refs.chatScrollTarget
@@ -989,6 +1043,19 @@ export default {
     }
   },
   methods: {
+    dismissPaymentDetailsReminder () {
+      this.$store.commit('ramp/dismissPaymentDetailsReminder', {
+        walletHash: this.$store.getters['global/getWallet']('bch')?.walletHash,
+        accountId: this.$store.getters['ramp/getUser']?.id,
+        orderId: this.order?.id,
+        suppress: this.suppressPaymentDetailsReminder
+      })
+    },
+    async reviewPaymentMethods () {
+      const orderId = this.order.id
+      this.dismissPaymentDetailsReminder()
+      await this.$router.push({ name: 'p2p-profile', query: { edit: 'payments', returnOrder: String(orderId) } })
+    },
     formatDate,
     formatOrderStatus,
     getDarkModeClass,
@@ -1011,22 +1078,18 @@ export default {
       try {
         const vm = this
         await vm.fetchOrder('loadData')
+        if (!vm.disposed && vm.isChatEnabled) vm.initializeChat()
+        const requests = []
         if (vm.order.contract && !vm.escrowContract) {
-          await vm.generateContract()
+          requests.push(vm.generateContract())
         } else if (vm.order.contract && !vm.contract?.address) {
-          await vm.generateContract(true)
+          requests.push(vm.generateContract(true))
         }
-        await vm.fetchAd()
-        await vm.fetchFeedback()
+        requests.push(vm.fetchAd(), vm.fetchFeedback(), vm.fetchStatusList())
         vm.fetchCounterpartyTradeStats()
-        await vm.fetchStatusList() // Load status history
+        await Promise.all(requests)
+        if (vm.disposed) return
         vm.ensureChatCloseCountdownTimer()
-        
-        // Fetch unread count before potentially switching to chat tab
-        const escrowedStatuses = ['ESCRW', 'PD_PN', 'PD', 'RLS_PN', 'RLS', 'RFN_PN', 'RFN', 'APL']
-        if (escrowedStatuses.includes(vm.order?.status?.value)) {
-          await vm.fetchChatUnread(vm.chatRef)
-        }
         
         if (this.notifType === 'new_message') { 
           this.activeTab = 'chat'
@@ -1108,13 +1171,76 @@ export default {
       return `${this.$t('By', {}, 'by')} ${actor.name}`
     },
 
+    selectTab (name) {
+      if (this.disposed || !['details', 'history', 'chat'].includes(name) || (name !== 'details' && !this.isloaded)) return
+      if (this.selectedTab === name) return
+      this.selectedTab = name
+      if (this.tabChangeFrame != null) cancelAnimationFrame(this.tabChangeFrame)
+      if (this.tabSelectionFrame != null) cancelAnimationFrame(this.tabSelectionFrame)
+      this.tabSelectionFrame = null
+      if (this.activeTab === name) return
+      this.tabSelectionFrame = requestAnimationFrame(() => {
+        this.tabSelectionFrame = requestAnimationFrame(() => {
+          this.tabSelectionFrame = null
+          if (this.disposed || this.selectedTab !== name) return
+          this.activeTab = name
+        })
+      })
+    },
+
+    handleTabChange (newTab, oldTab) {
+      if (newTab === 'history') {
+        this.readOrderStatus()
+      } else if (newTab === 'chat') {
+        // Only load chat if escrow is complete
+        if (!this.isChatEnabled) {
+          return
+        }
+
+        if (!this.chatLoaded) {
+          this.loadChatData()
+        } else if (this.chatReadyScope !== this.chatSetupScope()) {
+          this.retryChat()
+        } else {
+          // Update last read when switching to chat tab
+          updateLastRead(this.chatRef, this.chatMessages)
+            .then(() => {
+              bus.emit('last-read-update')
+              // Refresh unread count after marking as read
+              this.fetchChatUnread(this.chatRef)
+            })
+            .catch(error => {
+              console.error('Error updating last read:', error)
+            })
+        }
+
+        // Attach scroll listener for chat input hide/show
+        this.$nextTick(() => {
+          const scrollTarget = this.$refs.chatScrollTarget
+          if (scrollTarget) {
+            scrollTarget.addEventListener('scroll', this.handleChatScroll, { passive: true })
+          }
+        })
+      } else if (oldTab === 'chat') {
+        // When leaving chat tab, refresh unread count (only if chat was enabled)
+        if (this.isChatEnabled) {
+          this.fetchChatUnread(this.chatRef)
+        }
+
+      }
+    },
+
     // Chat Tab Methods
     async loadKeyPair () {
+      const scope = this.chatSetupScope()
       try {
         // Always derive fresh from mnemonic for cross-platform consistency
         const walletIndex = Store.getters['global/getWalletIndex']
-        this.keypair = await getEncryptionKeypairFromMnemonic(walletIndex)
+        const keypair = await getEncryptionKeypairFromMnemonic(walletIndex)
+        if (this.disposed || this.chatSetupScope() !== scope) return
+        this.keypair = keypair
       } catch (error) {
+        if (this.disposed || this.chatSetupScope() !== scope) return
         console.error('Failed to load keypair from mnemonic:', error)
         this.keypair = {}
       }
@@ -1122,34 +1248,125 @@ export default {
 
     async loadChatIdentity () {
       const chatIdentityRef = generateChatIdentityRef(wallet.walletHash)
-      this.chatIdentity = this.$store.getters['ramp/chatIdentity'](chatIdentityRef)
-      
-      if (!this.chatIdentity) {
-        const user = this.$store.getters['ramp/getUser']
-        const identity = await loadChatIdentity('peer', { 
-          name: user?.name, 
-          chat_identity_id: user?.chat_identity_id 
-        }).catch(console.error)
-        
-        if (identity) {
-          this.chatIdentity = identity
-          this.$store.commit('ramp/updateChatIdentity', { 
-            ref: identity.ref, 
-            chatIdentity: identity 
-          })
-        }
+      const user = this.$store.getters['ramp/getUser']
+      const prepared = await user?.chatPreparation
+      if (chatIdentityRef !== generateChatIdentityRef(wallet.walletHash)) {
+        throw Object.assign(new Error('The active P2P wallet changed. Please reopen chat.'), { code: 'p2p_identity_mismatch' })
       }
+      const cachedIdentity = this.$store.getters['ramp/chatIdentity'](chatIdentityRef)
+      this.chatIdentity = prepared && cachedIdentity?.ref === chatIdentityRef
+        ? cachedIdentity
+        : await loadChatIdentity('peer', {
+          name: user?.name,
+          chat_identity_id: user?.chat_identity_id
+        })
+      if (!this.chatIdentity || this.chatIdentity.ref !== chatIdentityRef) {
+        throw new Error('Chat identity is unavailable for the active wallet.')
+      }
+      return this.chatIdentity
+    },
+
+    chatSetupScope () {
+      return JSON.stringify([
+        this.order?.id, this.chatRef,
+        this.$store.getters['global/getWallet']('bch')?.walletHash,
+        this.$store.getters['global/getWalletIndex'],
+        this.$store.getters['global/isChipnet']
+      ])
+    },
+
+    async initializeChat () {
+      if (this.disposed || !this.order?.id || !this.chatRef) return false
+      const scope = this.chatSetupScope()
+      if (this.chatReadyScope === scope) return true
+      if (this.chatInitialization?.scope === scope) return this.chatInitialization.promise
+      const orderId = this.order.id
+      const chatRef = this.chatRef
+      const isCurrent = () => !this.disposed && this.chatSetupScope() === scope
+      this.chatInitializing = true
+      this.chatError = false
+      this.chatErrorMessage = null
+      this.chatReadyScope = null
+      const promise = (async () => {
+        try {
+          await this.loadChatIdentity()
+          if (!isCurrent()) return false
+          const session = this.order.chat_session_ref ? await fetchChatSession(chatRef) : null
+          if (!isCurrent()) return false
+          let members = session ? await fetchChatMembers(chatRef) : []
+          if (!isCurrent()) return false
+          const isMember = member => member.chat_identity?.ref === this.chatIdentity.ref
+          if (!members.some(isMember)) {
+            await this.createGroupChat(orderId, chatRef, !!session, isCurrent)
+            if (!isCurrent()) return false
+            members = await fetchChatMembers(chatRef)
+          }
+          if (!isCurrent()) return false
+          const ownMember = members.find(isMember)
+          if (!ownMember) throw new Error('Chat membership is not ready.')
+          if (this.order.chat_session_ref !== chatRef) {
+            await updateOrderChatSessionRef(orderId, chatRef)
+            if (!isCurrent()) return false
+            this.order.chat_session_ref = chatRef
+          }
+          this.chatMembersRaw = members
+          this.unreadChatCount = ownMember.unread_count || 0
+          this.hasUnread = this.unreadChatCount > 0
+          this.chatReadyScope = scope
+          this.ensureChatWebSocket()
+          return true
+        } catch (error) {
+          if (isCurrent()) {
+            this.chatError = true
+            this.chatIdentity = null
+            this.chatErrorMessage = ['p2p_chat_access_denied', 'p2p_chat_link_unavailable'].includes(error?.code) ? error.message : null
+            if (error?.response?.status === 401 && error?.code !== 'p2p_chat_access_denied') bus.emit('session-expired')
+          }
+          return false
+        } finally {
+          if (this.chatInitialization?.scope === scope) {
+            this.chatInitializing = false
+            this.chatInitialization = null
+          }
+        }
+      })()
+      this.chatInitialization = { scope, promise }
+      return promise
+    },
+
+    retryChat () {
+      if (this.chatInitializing || this.chatLoading) return
+      this.chatError = false
+      this.chatErrorMessage = null
+      this.chatReadyScope = null
+      this.websockets.chat?.closeConnection()
+      this.chatLoaded = false
+      this.chatMessages = []
+      return this.loadChatData()
+    },
+
+    onChatDisconnected (url) {
+      if (this.disposed || url !== this.websockets.chat?.url) return
+      this.chatReadyScope = null
+      this.chatError = true
     },
 
     async loadChatData () {
-      if (!this.chatRef || this.chatLoaded) return
-      
-      try {
-        await this.loadKeyPair()
-        await this.loadChatIdentity()
+      if (this.disposed || !this.chatRef || this.chatLoaded || this.chatLoading) return
+      this.chatLoading = true
+      this.chatError = false
+      const scope = this.chatSetupScope()
 
+      try {
+        if (!await this.initializeChat()) return
         // Fetch chat members (use cached from fetchChatUnread if available)
-        const members = this.chatMembersRaw || await fetchChatMembers(this.chatRef).catch(() => [])
+        const [members, pubkeys, response] = await Promise.all([
+          this.chatMembersRaw || fetchChatMembers(this.chatRef),
+          fetchChatPubkeys(this.chatRef),
+          fetchChatMessages(this.chatRef, 0, 10),
+          this.loadKeyPair()
+        ])
+        if (this.disposed || this.chatSetupScope() !== scope) return
         this.chatMembersRaw = null
         if (members?.length) {
           this.chatMembers = members.map(member => ({
@@ -1164,13 +1381,11 @@ export default {
         }
 
         // Fetch chat pubkeys
-        const pubkeys = await fetchChatPubkeys(this.chatRef).catch(() => [])
         if (pubkeys?.length) {
           this.chatPubkeys = pubkeys
         }
 
         // Fetch and decrypt messages
-        const response = await fetchChatMessages(this.chatRef, 0, 10)
         // console.log('[Chat Pagination] API response:', { 
         //   count: response?.count, 
         //   next: response?.next, 
@@ -1190,9 +1405,7 @@ export default {
           })
           
           await this.decryptChatMessages(this.chatMessages)
-          
-          // Decrypt attachments
-          await this.decryptChatAttachments()
+          if (this.disposed || this.chatSetupScope() !== scope) return
           
           // Set pagination state
           this.chatMessagesOffset = this.chatMessages.length
@@ -1209,23 +1422,11 @@ export default {
         this.userHasScrolled = false
         this.justLoadedMessages = false
         
-        // Re-establish chat websocket connection after loading chat data
-        // This ensures fresh connection for receiving new messages
-        if (this.chatRef && this.websockets.chat) {
-          this.websockets.chat.closeConnection()
-          this.websockets.chat = new WebSocketManager()
-          this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
-          this.websockets.chat.subscribeToMessages(message => {
-            if (message?.type === 'new_message') {
-              const messageData = message.data
-              bus.emit('last-read-update')
-              bus.emit('new-message', messageData)
-            }
-          })
-        }
+        this.ensureChatWebSocket()
 
         // Scroll to bottom with multiple attempts and stop infinite scroll if no more messages
         this.$nextTick(() => {
+          if (this.disposed || this.activeTab !== 'chat' || this.selectedTab !== 'chat') return
           this.scrollChatToBottom()
           
           // If no more messages, stop the infinite scroll
@@ -1248,7 +1449,9 @@ export default {
         })
       } catch (error) {
         console.error('Error loading chat:', error)
-        this.chatLoaded = true
+        if (!this.disposed && this.chatSetupScope() === scope) this.chatError = true
+      } finally {
+        this.chatLoading = false
       }
     },
 
@@ -1321,13 +1524,6 @@ export default {
           
           // Decrypt messages
           await this.decryptChatMessages(uniqueNewMessages)
-          
-          // Decrypt attachments in the new messages
-          for (const message of uniqueNewMessages) {
-            if (message.hasAttachment || message.attachment || message.encryptedAttachmentUrl) {
-              await this.decryptMessageAttachment(message)
-            }
-          }
           
           // Prepend new messages to the beginning (older messages)
           this.chatMessages = [...uniqueNewMessages, ...this.chatMessages]
@@ -1410,30 +1606,22 @@ export default {
         return
       }
       
-      // Validate message is not empty
       if (!vm.chatMessageInput.trim()) {
-        if (vm.chatAttachment) {
-          vm.$q.notify({
-            type: 'warning',
-            message: vm.$t('MessageCannotBeEmpty', {}, 'Message cannot be empty. Please add text with your attachment.'),
-            position: 'top',
-            timeout: 3000
-          })
-        } else {
-          vm.$q.notify({
-            type: 'warning',
-            message: vm.$t('MessageCannotBeEmpty', {}, 'Message cannot be empty.'),
-            position: 'top',
-            timeout: 3000
-          })
-        }
+        vm.$q.notify({
+          type: 'warning',
+          message: vm.chatAttachment
+            ? vm.$t('ChatAttachmentMessageRequired', {}, 'Add a message to send this image.')
+            : vm.$t('MessageCannotBeEmpty', {}, 'Message cannot be empty.'),
+          position: 'top',
+          timeout: 3000
+        })
         return
       }
-      
-      if (vm.sendingMessage) return
-      
+      if (vm.sendingMessage || vm.preparingChatAttachment) return
+
       try {
         vm.sendingMessage = true
+        vm.attachmentSendStage = vm.chatAttachment ? 'preparing' : null
         const originalMessage = vm.chatMessageInput.trim()
         let attachment = vm.chatAttachment
         let useFormData = false
@@ -1531,6 +1719,7 @@ export default {
         vm.addMessageToChat(tempChatMessage)
         
         // Send message to API
+        if (hasAttachment) vm.attachmentSendStage = 'uploading'
         const response = await sendChatMessageAPI(data, originalMessage)
         
         // Extract the actual data from axios response
@@ -1607,6 +1796,7 @@ export default {
         console.error('Error sending message:', error)
       } finally {
         vm.sendingMessage = false
+        vm.attachmentSendStage = null
       }
     },
 
@@ -1639,7 +1829,11 @@ export default {
     async onNewMessage (messageData) {
       const vm = this
       
-      if (!messageData || vm.addingNewMessage) return
+      if (!messageData || vm.disposed || vm.addingNewMessage) return
+      if (!vm.chatLoaded && vm.activeTab !== 'chat') {
+        await vm.fetchChatUnread(vm.chatRef)
+        return
+      }
       
       // Ensure chat is initialized
       if (!vm.chatIdentity || !vm.keypair.privkey) {
@@ -1671,11 +1865,6 @@ export default {
           const added = vm.addMessageToChat(decryptedMessage)
 
           if (added) {
-            // Decrypt attachment if present
-            if (decryptedMessage.hasAttachment || decryptedMessage.attachment || decryptedMessage.encryptedAttachmentUrl) {
-              await vm.decryptMessageAttachment(decryptedMessage)
-            }
-            
             // Trigger glow animation for messages from other party
             if (!decryptedMessage.chatIdentity.is_user) {
               vm.triggerNewMessageGlow()
@@ -1787,8 +1976,10 @@ export default {
     },
 
     scrollChatToBottom () {
+      if (this.disposed || this.activeTab !== 'chat' || this.selectedTab !== 'chat') return
       // Scroll the window to bottom
       const scrollWindowToBottom = () => {
+        if (this.disposed || this.activeTab !== 'chat' || this.selectedTab !== 'chat') return
         window.scrollTo({
           top: document.body.scrollHeight,
           behavior: 'smooth'
@@ -1839,8 +2030,6 @@ export default {
       if (!scrollTarget) return
       
       const currentScrollY = scrollTarget.scrollTop
-      const scrollHeight = scrollTarget.scrollHeight
-      const clientHeight = scrollTarget.clientHeight
       
       // Check if user is near the top (within 100px)
       const isNearTop = currentScrollY <= 100
@@ -1865,35 +2054,6 @@ export default {
           this.userHasScrolled = false
         }
       }
-      
-      // If at the bottom of chat, always show input
-      if (currentScrollY + clientHeight >= scrollHeight - 10) {
-        this.isChatInputHidden = false
-        this.lastChatScrollY = currentScrollY
-        return
-      }
-      
-      // If at the top of chat, hide input (reading old messages)
-      if (currentScrollY <= 10) {
-        this.isChatInputHidden = true
-        this.lastChatScrollY = currentScrollY
-        return
-      }
-      
-      // Only hide/show if scrolled past threshold
-      if (Math.abs(currentScrollY - this.lastChatScrollY) < this.chatScrollThreshold) {
-        return
-      }
-      
-      if (currentScrollY < this.lastChatScrollY) {
-        // Scrolling up (to older messages) - hide input
-        this.isChatInputHidden = true
-      } else if (currentScrollY > this.lastChatScrollY) {
-        // Scrolling down (to newer messages) - show input
-        this.isChatInputHidden = false
-      }
-      
-      this.lastChatScrollY = currentScrollY
     },
 
     openFileAttachmentField () {
@@ -1906,6 +2066,7 @@ export default {
         return
       }
       
+      this.preparingChatAttachment = true
       try {
         // Resize the image with proper options
         const resizedImage = await resizeImage({
@@ -1931,6 +2092,8 @@ export default {
         })
         this.chatAttachment = null
         this.chatAttachmentUrl = null
+      } finally {
+        this.preparingChatAttachment = false
       }
     },
 
@@ -1940,68 +2103,32 @@ export default {
     },
 
     async decryptMessageAttachment (message) {
-      if (!this.keypair.privkey) await this.loadKeyPair()
-      if (!this.keypair.privkey) return
-      if (message.decryptedAttachmentFile?.url) return
-      
+      if (this.disposed || this.activeTab !== 'chat' || this.selectedTab !== 'chat' ||
+          message?.$state?.decryptingAttachment || message?.decryptedAttachmentFile?.url) return
+      const scope = this.chatSetupScope()
+      if (!message.$state) message.$state = {}
+      message.$state.decryptingAttachment = true
+      message.$state.attachmentError = false
       try {
-        if (!message.$state) {
-          message.$state = {}
-        }
-        message.$state.decryptingAttachment = true
-        
-        // Set encryptedAttachmentUrl if it's missing but attachmentUrl exists
-        // The API returns the encrypted file URL as 'attachment_url', but decryption expects 'encryptedAttachmentUrl'
+        if (!this.keypair.privkey) await this.loadKeyPair()
+        if (this.disposed || this.chatSetupScope() !== scope) return
+        if (!this.keypair.privkey) throw new Error('Chat key is unavailable')
         if (!message.encryptedAttachmentUrl) {
-          if (message.encrypted_attachment_url) {
-            message.encryptedAttachmentUrl = message.encrypted_attachment_url
-          } else if (message.attachmentUrl) {
-            message.encryptedAttachmentUrl = message.attachmentUrl
-          }
+          message.encryptedAttachmentUrl = message.encrypted_attachment_url || message.attachmentUrl
         }
-        
-        if (typeof message.decryptAttachment === 'function') {
-          await message.decryptAttachment(this.keypair.privkey, false)
+        if (typeof message.decryptAttachment !== 'function') throw new Error('Attachment is unavailable')
+        await message.decryptAttachment(this.keypair.privkey, false)
+        if (this.disposed || this.chatSetupScope() !== scope) return
+        if (!message.decryptedAttachmentFile?.url) throw new Error('Attachment could not be decrypted')
+      } catch {
+        if (!this.disposed && this.chatSetupScope() === scope) message.$state.attachmentError = true
+      } finally {
+        message.$state.decryptingAttachment = false
+        if (!this.disposed && this.chatSetupScope() === scope) {
+          this.chatMessages = [...this.chatMessages]
+          this.$forceUpdate()
         }
-        
-        message.$state.decryptingAttachment = false
-        
-        // Force Vue reactivity update - critical for iOS
-        // Increment key to force re-render of the entire chat messages list
-        this.chatMessagesKey++
-        
-        // Recreate the array to trigger reactivity
-        this.chatMessages = [...this.chatMessages]
-        
-        // Force update as additional safeguard
-        this.$forceUpdate()
-      } catch (error) {
-        console.error('Error decrypting attachment:', error)
-        message.$state.decryptingAttachment = false
-        // Force update even on error to clear the loading state
-        this.chatMessagesKey++
-        this.chatMessages = [...this.chatMessages]
-        this.$forceUpdate()
       }
-    },
-
-    async decryptChatAttachments () {
-      // Decrypt all message attachments
-      const messagesWithAttachments = this.chatMessages.filter(msg => 
-        (msg.attachment || msg.encryptedAttachmentUrl || msg.encrypted_attachment_url || msg.hasAttachment) && 
-        !msg.decryptedAttachmentFile?.url
-      )
-      
-      for (const message of messagesWithAttachments) {
-        await this.decryptMessageAttachment(message)
-      }
-      
-      // Force a complete re-render
-      // Note: decryptMessageAttachment already updates chatMessagesKey and recreates the array
-      // but we add an extra update here as a safeguard
-      this.chatMessagesKey++
-      this.chatMessages = [...this.chatMessages]
-      this.$forceUpdate()
     },
 
     chatMemberType (chatIdentityId) {
@@ -2022,49 +2149,40 @@ export default {
       return formatDate(date, true)
     },
 
-    async fetchOrder (caller = 'unknown') {
+    async fetchOrder () {
       const vm = this
+      if (vm.disposed) return
       const orderId = this.$route.params?.order
       if (!orderId) {
         console.warn('Order ID is missing from route params, skipping fetchOrder')
         return
       }
-      const now = Date.now()
-      if (caller === 'websocket' && vm._fetchOrderLastTime && now - vm._fetchOrderLastTime < 10000) {
+      if (vm.fetchOrderInProgress) {
+        vm.orderRefreshPending = true
         return
       }
-      if (vm._fetchOrderInProgress) {
-        return
-      }
-      vm._fetchOrderInProgress = true
+      vm.fetchOrderInProgress = true
       try {
         const url = `/ramp-p2p/order/${orderId}/`
-        const response = await backend.get(url, { authorize: true })
-        vm._fetchOrderLastTime = Date.now()
+        const response = await backend.get(url, { authorize: 'peer', cache: false, params: { _fresh: Date.now() } })
+        if (vm.disposed) return
         vm.order = response.data
+        vm.orderLoaded = true
         await vm.handleNewStatus(vm.order.status)
         vm.syncLiveActivity()
         vm.updateOrderReadAt()
         const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
-        const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
+        const chatRef = vm.order.chat_session_ref || generateChatRef(vm.order.id, vm.order.created_at, members)
         vm.chatRef = chatRef
-        if (vm.order?.chat_session_ref !== chatRef && vm.order?.id) {
-          updateOrderChatSessionRef(vm.order.id, chatRef)
-          fetchChatSession(chatRef)
-            .catch(error => {
-              if (error.response?.status === 404 && vm.order?.id) {
-                vm.createGroupChat(vm.order.id, chatRef)
-              } else if (error.response?.status === 403) {
-                // 403 means chat identity not ready - silently ignore
-              } else {
-                this.handleRequestError(error)
-              }
-            })
-        }
+        if (vm.isloaded && vm.isChatEnabled) vm.initializeChat()
       } catch (error) {
         this.handleRequestError(error)
       } finally {
-        vm._fetchOrderInProgress = false
+        vm.fetchOrderInProgress = false
+        if (vm.orderRefreshPending && !vm.disposed) {
+          vm.orderRefreshPending = false
+          await vm.fetchOrder('pending-update')
+        }
       }
     },
 
@@ -2072,11 +2190,11 @@ export default {
       if (!chatRef) return
       
       const user = this.$store.getters['ramp/getUser']
+      const identityId = this.chatIdentity?.id ?? user?.chat_identity_id
       
       await fetchChatMembers(chatRef).then(response => {
-        const userMember = response?.filter(member => {
-          return user?.chat_identity_id === member?.chat_identity?.id
-        })[0]
+        const userMember = response?.find(member => identityId != null &&
+          String(identityId) === String(member?.chat_identity?.id))
         
         this.unreadChatCount = userMember?.unread_count || 0
         this.hasUnread = this.unreadChatCount > 0
@@ -2090,8 +2208,7 @@ export default {
       const vm = this
       if (vm.escrowContract && !shouldReloadChildren) return
 
-      await vm.fetchFees()
-      await vm.fetchContract()
+      await Promise.all([vm.fetchFees(), vm.fetchContract()])
       
       if (!vm.contract) return
       
@@ -2160,7 +2277,7 @@ export default {
         from_peer: vm.$store.getters['ramp/getUser'].id,
         order_id: vm.order.id
       }
-      await backend.get(url, { params: params, authorize: true })
+      await backend.get(url, { params: params, authorize: 'peer' })
         .then(response => {
           if (response.data) {
             const data = response.data.feedbacks[0]
@@ -2190,29 +2307,34 @@ export default {
       backend.patch(url, null, { authorize: true }).catch(error => { this.handleRequestError(error) })
     },
 
-    async createGroupChat (orderId, chatRef) {
-      if (!orderId) throw Error(`Missing required parameter: orderId (${orderId})`)
-      const vm = this
-      const members = await vm.fetchOrderMembers(orderId)
-      const chatMembers = members.map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
-      createChatSession(orderId, chatRef)
-        .then(chatRef => {
-          if (chatRef) {
-            // Only update members if session was created successfully
-            updateChatMembers(chatRef, chatMembers).catch(error => {
-              // Silently handle errors - chat identity might not be ready
-              if (error.response?.status !== 403) {
-                console.error('Failed to update chat members:', error)
-              }
-            })
-          }
-        })
-        .catch(error => {
-          // Silently handle 403 errors - chat identity not ready yet
-          if (error.response?.status !== 403) {
-            console.error('Failed to create chat session:', error)
-          }
-        })
+    async createGroupChat (orderId, chatRef, sessionExists = false, isCurrent = () => !this.disposed) {
+      if (!isCurrent()) return
+      const response = await backend.get(`/ramp-p2p/order/${orderId}/members/`, { authorize: 'peer', cache: false })
+      if (!isCurrent()) return
+      const chatMembers = response.data
+        .filter(member => member.chat_identity_id)
+        .map(({ chat_identity_id }) => ({ chat_identity_id, is_admin: true }))
+      if (!chatMembers.some(member => String(member.chat_identity_id) === String(this.chatIdentity.id))) {
+        throw new Error('The active chat identity is not registered as an order member.')
+      }
+      if (!sessionExists) {
+        let createdRef
+        try {
+          createdRef = await createChatSession(orderId, chatRef)
+        } catch (error) {
+          const refErrors = error.response?.data?.ref
+          if (error.response?.status !== 400 || !Array.isArray(refErrors) ||
+              !refErrors.some(message => /already exists/i.test(message))) throw error
+          if (!isCurrent()) return
+          const session = await fetchChatSession(chatRef)
+          if (session?.data?.ref === chatRef) createdRef = chatRef
+        }
+        if (!isCurrent()) return
+        if (createdRef !== chatRef) throw new Error('Chat session is not ready.')
+      }
+      const updated = await updateChatMembers(chatRef, chatMembers)
+      if (!isCurrent()) return
+      if (!updated) throw new Error('Chat membership could not be updated.')
     },
 
     async fetchOrderMembers (orderId) {
@@ -2273,10 +2395,12 @@ export default {
           break
         }
         case 'ESCRW': // Escrowed
+          this.contractBalance = null
           state = this.getEscrowedState(kwargs)
           this.reloadChildComponents()
           break
         case 'PD_PN': // Paid Pending
+          this.contractBalance = null
           this.txid = null
           state = this.getPaidPendingState(kwargs)
           confirmType = this.getConfirmTypeByTradeType(kwargs)
@@ -2291,11 +2415,13 @@ export default {
           break
         }
         case 'RFN': // Refunded
+          this.contractBalance = null
           this.clearStoredTxids(this.order?.id)
           state = this.getDefaultState()
           this.reloadChildComponents()
           break
         case 'RLS': // Released - Order completed successfully
+          this.contractBalance = null
           // Trigger reward API for buyer only
           if (this.userTraderType === 'BUYER' && !this.rewardNotified) {
             const buyerAddress = this.contract?.addresses?.buyer
@@ -2397,7 +2523,7 @@ export default {
 
       let nextState = 'tx-confirmation'
 
-      if (!this.txid || kwargs?.contractBalance > 0) nextState = 'payment-confirmation'
+      if (!this.txid) nextState = 'payment-confirmation'
       if (kwargs?.tradeType === 'BUY') {
         return kwargs?.userIsAdOwner ? nextState : 'standby-view'
       }
@@ -2477,7 +2603,7 @@ export default {
         rating: feedback.rating,
         comment: feedback.comment
       }
-      await backend.post(url, body, { authorize: true })
+      await backend.post(url, body, { authorize: 'peer' })
         .then(response => {
           const data = response.data
           vm.feedback = {
@@ -2500,7 +2626,7 @@ export default {
         return
       }
       const members = [vm.order?.members.buyer.public_key, vm.order?.members.seller.public_key].join('')
-      const chatRef = generateChatRef(vm.order.id, vm.order.created_at, members)
+      const chatRef = vm.order.chat_session_ref || generateChatRef(vm.order.id, vm.order.created_at, members)
       vm.fetchOrderMembers(vm.order.id)
         .then(members => {
           const arbiter = members.filter(member => member.is_arbiter === true)
@@ -2515,6 +2641,8 @@ export default {
         return
       }
       await this.loadData()
+      await this.$nextTick()
+      await this.$refs.escrowTransferRef?.loadData()
       if (done) done()
     },
 
@@ -2591,7 +2719,8 @@ export default {
     },
 
     setupWebSocket () {
-      this.closeWSConnection()
+      if (this.disposed) return
+      this.websockets?.order?.closeConnection()
       // Subscribe to order updates
       if (!this.order?.id) {
         console.warn('Order ID is missing, skipping WebSocket setup')
@@ -2601,42 +2730,63 @@ export default {
       this.websockets.order.setWebSocketUrl(`${getBackendWsUrl()}order/${this.order.id}/`)
       this.websockets.order.subscribeToMessages(async (message) => {
         if (message?.success) {
+          if (message.contract_address) this.contractUpdatePending = true
           if (message?.txdata) {
             this.verifyingTx = false
             this.sendingBch = false
           }
-          if (this.wsFetchingOrder) return
+          if (this.wsFetchingOrder) {
+            this.orderUpdatePending = true
+            return
+          }
           this.wsFetchingOrder = true
           try {
-            await this.fetchOrder('websocket')
-            if (message?.contract_address || (this.order?.contract && !this.escrowContract)) {
-              await this.generateContract(true)
-              this.escrowTransferKey++
-            }
+            do {
+              this.orderUpdatePending = false
+              await this.fetchOrder('websocket')
+              if (this.disposed) return
+              const contractUpdate = this.contractUpdatePending
+              this.contractUpdatePending = false
+              if (contractUpdate || (this.order?.contract && !this.escrowContract)) {
+                await this.generateContract(true)
+                this.escrowTransferKey++
+              }
+            } while (this.orderUpdatePending && !this.disposed)
+          } catch (error) {
+            this.handleRequestError(error)
           } finally {
             this.wsFetchingOrder = false
           }
         } else {
-          if ((message?.action === 'ESCROW' || message?.action === 'RELEASE') &&
+          if (message?.success === false && (message?.action === 'ESCROW' || message?.action === 'RELEASE') &&
             this.userTraderType === 'SELLER') {
+            const reason = p2pErrorMessage({ response: { data: message.error || message.errors } }, 'Transaction verification failed. Retry verification without sending funds again.')
+            if (this.state === 'tx-confirmation' && message.action === this.verifyAction) {
+              this.verifyingTx = false
+              this.$refs.verifyTransactionRef?.handleVerificationFailure(message.action, reason)
+            }
             this.noticeType = 'error'
-            this.errorMessage = message?.error
+            this.errorMessage = reason
             this.showNoticeDialog = true
           }
         }
       })
 
-      // Subscribe to chat
-      this.websockets.chat = new WebSocketManager()
-      this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${this.chatRef}/`)
-      
-      this.websockets.chat.subscribeToMessages(message => {
-        if (message?.type === 'new_message') {
-          const messageData = message.data
-          bus.emit('last-read-update')
-          bus.emit('new-message', messageData)
-        }
-      })
+      this.ensureChatWebSocket()
+    },
+
+    ensureChatWebSocket () {
+      if (this.disposed || !this.chatRef || this.chatReadyScope !== this.chatSetupScope()) return
+      if (!this.websockets.chat) {
+        this.websockets.chat = new WebSocketManager()
+        this.websockets.chat.subscribeToMessages(message => {
+          if (message?.type === 'new_message') {
+            bus.emit('last-read-update')
+            bus.emit('new-message', message.data)
+          }
+        })
+      }
+      this.websockets.chat.setWebSocketUrl(`${getChatBackendWsUrl()}${encodeURIComponent(this.chatRef)}/`)
     },
 
     closeWSConnection () {
@@ -2784,6 +2934,7 @@ export default {
   }
 
   .order-tab-btn {
+    touch-action: manipulation;
     min-width: 100px;
     height: 44px;
     border-radius: 22px;
@@ -2792,7 +2943,7 @@ export default {
     background-color: transparent;
     outline: 0;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: none;
     font-weight: 500;
     font-size: 14px;
     padding: 0 16px;
@@ -2975,18 +3126,6 @@ export default {
       min-height: 0;
     }
     
-    // When input is hidden, make everything transparent
-    &.input-hidden {
-      background: transparent !important;
-      
-      :deep(.tab-content-wrapper) {
-        background: transparent !important;
-      }
-      
-      :deep(.q-tab-panel__content) {
-        background: transparent !important;
-      }
-    }
   }
 
   .chat-disabled-notice {
@@ -3350,12 +3489,6 @@ export default {
     }
   }
   
-  .chat-input-hidden {
-    transform: translateX(-50%) translateY(120px);
-    opacity: 0;
-    pointer-events: none;
-  }
-
   .chat-input-container {
     padding: 12px 16px;
     display: flex;
@@ -3478,6 +3611,14 @@ export default {
   }
   
   .encrypted-attachment {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 220px;
+    max-width: 100%;
+    min-height: 150px;
+    overflow: hidden;
     background: rgba(0, 0, 0, 0.05);
     border-radius: 8px;
     padding: 8px 12px;
@@ -3485,6 +3626,22 @@ export default {
     .dark & {
       background: rgba(255, 255, 255, 0.05);
     }
+  }
+
+  .attachment-cover {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(96, 125, 139, 0.35), rgba(158, 158, 158, 0.15));
+    filter: blur(6px);
+    opacity: 0.6;
+  }
+
+  .attachment-reveal-action {
+    position: relative;
+    text-align: center;
   }
 
   // Mobile Responsive Adjustments
@@ -3543,18 +3700,6 @@ export default {
         min-height: 0;
       }
       
-      // When input is hidden, make everything transparent
-      &.input-hidden {
-        background: transparent !important;
-        
-        :deep(.tab-content-wrapper) {
-          background: transparent !important;
-        }
-        
-        :deep(.q-tab-panel__content) {
-          background: transparent !important;
-        }
-      }
     }
   }
 
@@ -3614,18 +3759,6 @@ export default {
         min-height: 0;
       }
       
-      // When input is hidden, make everything transparent
-      &.input-hidden {
-        background: transparent !important;
-        
-        :deep(.tab-content-wrapper) {
-          background: transparent !important;
-        }
-        
-        :deep(.q-tab-panel__content) {
-          background: transparent !important;
-        }
-      }
     }
   }
   

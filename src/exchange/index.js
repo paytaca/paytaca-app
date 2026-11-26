@@ -1,4 +1,5 @@
 import { i18n } from 'src/boot/i18n'
+import BigNumber from 'bignumber.js'
 const { t } = i18n.global
 
 export const SATOSHI_PER_BCH = 10 ** 8
@@ -246,4 +247,54 @@ export function bchToSatoshi (bch) {
 
 export function satoshiToBch (satoshi) {
   return Number(satoshi) / SATOSHI_PER_BCH
+}
+
+function p2pDecimal (value, label) {
+  const number = new BigNumber(value)
+  if (!number.isFinite() || number.isNegative()) throw new Error(`Invalid ${label}.`)
+  return number
+}
+
+function p2pPrice (ad) {
+  const price = p2pDecimal(ad?.price, 'ad price')
+  if (price.isZero()) throw new Error('Ad price must be positive.')
+  return price
+}
+
+export function getP2PAmountBounds (ad) {
+  const price = p2pPrice(ad)
+  const floor = p2pDecimal(ad.trade_floor, 'ad minimum')
+  const ceiling = p2pDecimal(ad.trade_ceiling, 'ad maximum')
+  const remaining = p2pDecimal(ad.trade_amount, 'remaining quantity')
+  const divisor = ad.trade_limits_in_fiat ? price : new BigNumber(1)
+  const lower = floor.times(SATOSHI_PER_BCH)
+  const upper = BigNumber.minimum(ceiling, remaining).times(SATOSHI_PER_BCH)
+  const min = BigNumber.maximum(1, lower.dividedToIntegerBy(divisor).plus(lower.modulo(divisor).isZero() ? 0 : 1))
+  const max = BigNumber.minimum(Number.MAX_SAFE_INTEGER, upper.dividedToIntegerBy(divisor))
+  if (min.gt(max)) throw new Error('No valid satoshi amount is available within this ad’s limits.')
+  return { min: min.toNumber(), max: max.toNumber() }
+}
+
+export function p2pAmountToSatoshis (amount, byFiat, ad) {
+  const price = p2pPrice(ad)
+  const value = p2pDecimal(amount, 'order amount').times(SATOSHI_PER_BCH)
+  const sats = byFiat ? value.dividedToIntegerBy(price) : value
+  if (!sats.isInteger() || !sats.gt(0) || sats.gt(Number.MAX_SAFE_INTEGER)) {
+    throw new Error('Enter a positive amount in whole satoshis.')
+  }
+  const { min, max } = getP2PAmountBounds(ad)
+  if (sats.lt(min) || sats.gt(max)) throw new Error(`Order amount must be between ${min} and ${max} satoshis.`)
+  return sats.toNumber()
+}
+
+export function p2pSatoshisToAmount (sats, byFiat, ad) {
+  const bch = new BigNumber(sats).shiftedBy(-8)
+  return (byFiat ? bch.times(p2pPrice(ad)) : bch).toFixed()
+}
+
+export function p2pQuoteKey (ad) {
+  return JSON.stringify([
+    ad.id, ad.trade_type, ad.trade_limits_in_fiat, ad.fiat_currency?.symbol,
+    ...['price', 'trade_floor', 'trade_ceiling', 'trade_amount'].map(key => new BigNumber(ad[key]).toFixed())
+  ])
 }

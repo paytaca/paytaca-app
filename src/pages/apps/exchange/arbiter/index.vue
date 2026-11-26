@@ -15,6 +15,7 @@ export default {
   },
   data () {
     return {
+      disposed: false,
       websocketManager: null,
       showLogin: false,
       forceLogin: false,
@@ -59,17 +60,20 @@ export default {
     }
   },
   created () {
-    bus.on('session-expired', this.handleSessionEvent)
     bus.on('relogged', this.refreshChildren)
     bus.on('handle-request-error', this.handleRequestError)
   },
   async mounted () {
     await loadRampWallet()
+    if (this.disposed) return
     this.isLoading = false
     this.setupWebSocket()
   },
   beforeUnmount () {
+    this.disposed = true
     this.closeWSConnection()
+    bus.off('relogged', this.refreshChildren)
+    bus.off('handle-request-error', this.handleRequestError)
   },
   methods: {
     handleSessionEvent () {
@@ -98,10 +102,11 @@ export default {
       this.websocketManager?.closeConnection()
     },
     setupWebSocket () {
+      if (this.disposed) return
       this.closeWSConnection()
       const url = `${getBackendWsUrl()}general/${wallet.walletHash}/`
       this.websocketManager = new WebSocketManager()
-      this.websocketManager.setWebSocketUrl(url)
+      this.websocketManager.setWebSocketUrl(url, { userType: 'arbiter' })
       this.websocketManager.subscribeToMessages((message) => {
         if (message.type === 'NEW_APPEAL') {
           this.handleNewAppeal(message)
@@ -109,6 +114,19 @@ export default {
       })
     },
     handleRequestError (error) {
+      if (error?.code === 'p2p_profile_rejected') return
+      if (['p2p_chat_access_denied', 'p2p_identity_mismatch', 'p2p_account_type_mismatch'].includes(error?.code)) {
+        this.$q.notify({ type: 'error', message: error.message, timeout: 5000 })
+        return
+      }
+      if (error?.code === 'ECONNABORTED' && /timeout/i.test(error.message || '')) {
+        this.$q.notify({
+          type: 'error',
+          message: this.$t('P2PRequestTimedOut', {}, 'The P2P request timed out. Please try again.'),
+          timeout: 5000
+        })
+        return
+      }
       // Suppress ECONNABORTED — these are XHR aborts from
       // requestManager.abortAll on navigation, not actual HTTP timeouts.
       if (error?.code === 'ECONNABORTED') return

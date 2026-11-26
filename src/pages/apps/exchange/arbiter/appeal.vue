@@ -204,6 +204,7 @@ export default {
   },
   data () {
     return {
+      disposed: false,
       isChipnet: this.$store.getters['global/isChipnet'],
       darkMode: this.$store.getters['darkmode/getStatus'],
       websocketManager: {
@@ -236,6 +237,7 @@ export default {
       sendingBch: false,
       verifyingTx: false,
       transactions: [],
+      orderFetchSequence: 0,
       _fetchAppealLastTime: 0,
       _fetchAppealInProgress: false,
       _loadingData: false
@@ -300,6 +302,7 @@ export default {
   },
   async mounted () {
     await this.loadData()
+    if (this.disposed) return
     // Only call these if appeal was successfully loaded
     if (this.appeal) {
       this.updateOrderReadAt()
@@ -308,7 +311,10 @@ export default {
     if (this.notifType === 'new_message') { this.openChat = true }
   },
   beforeUnmount () {
+    this.disposed = true
     this.closeWSConnection()
+    bus.off('last-read-update', this.onLastReadUpdate)
+    bus.off('relogged', this.onRelogged)
   },
   methods: {
     getDarkModeClass,
@@ -326,9 +332,6 @@ export default {
     },
     onSendingBch (sending) {
       this.sendingBch = sending
-      if (!sending) {
-        this.refreshData()
-      }
     },
     onVerifyingTx (verifying) {
       this.verifyingTx = verifying
@@ -476,8 +479,10 @@ export default {
         this.loading = false
         return
       }
-      await backend.get(`/ramp-p2p/order/${orderId}`, { authorize: 'arbiter' })
+      const sequence = this.orderFetchSequence = (this.orderFetchSequence || 0) + 1
+      await backend.get(`/ramp-p2p/order/${orderId}/`, { authorize: 'arbiter', cache: false, params: { _fresh: Date.now() }, timeout: 10000 })
         .then(response => {
+          if (this.disposed || sequence !== this.orderFetchSequence) return
           this.amount = satoshiToBch(response.data?.order?.trade_amount)
           this.order = response.data
           this.updateStatus(this.order?.status)
@@ -579,6 +584,7 @@ export default {
       this.loadData()
     },
     setupWebsocket () {
+      if (this.disposed) return
       this.closeWSConnection()
       // Check if appeal and order exist before setting up websocket
       if (!this.appeal || !this.appeal.order || !this.appeal.order.id) {
@@ -587,15 +593,18 @@ export default {
       }
       const wsWatchtowerUrl = `${getBackendWsUrl()}order/${this.appeal.order.id}/`
       this.websocketManager.watchtower = new WebSocketManager()
-      this.websocketManager.watchtower.setWebSocketUrl(wsWatchtowerUrl)
+      this.websocketManager.watchtower.setWebSocketUrl(wsWatchtowerUrl, { userType: 'arbiter' })
       this.websocketManager.watchtower.subscribeToMessages(async (message) => {
         bus.emit('verify-tx', message)
         if (message?.success) {
           await this.fetchAppeal('websocket')
+          await this.fetchOrder()
+          if (this.disposed) return
           if (message?.txdata) {
             this.verifyingTx = false
             this.sendingBch = false
           }
+          if (this.sendingBch || this.verifyingTx) return
           if (this.manuallyAddingTx) {
             await this.refreshData()
             this.manuallyAddingTx = false
@@ -608,9 +617,11 @@ export default {
         }
       })
 
-      const wsChatUrl = `${getChatBackendWsUrl()}${this.order?.chat_session_ref}/`
+      const chatRef = this.order?.chat_session_ref
+      if (!chatRef) return
+      const wsChatUrl = `${getChatBackendWsUrl()}${encodeURIComponent(chatRef)}/`
       this.websocketManager.chat = new WebSocketManager()
-      this.websocketManager.chat.setWebSocketUrl(wsChatUrl)
+      this.websocketManager.chat.setWebSocketUrl(wsChatUrl, { userType: 'arbiter' })
       this.websocketManager.chat.subscribeToMessages((message) => {
         if (message?.type === 'new_message') {
           const messageData = message.data

@@ -73,6 +73,18 @@ export function updateShowAdLimitMessage (state, data) {
   }
 }
 
+export function dismissPaymentDetailsReminder (state, { walletHash, accountId, orderId, suppress }) {
+  if (!walletHash || accountId == null || (orderId == null && suppress !== true)) return
+  const walletState = getOrInitWalletState(state, walletHash)
+  if (!walletState) return
+  if (!walletState.paymentDetailsReminderByAccount) walletState.paymentDetailsReminderByAccount = {}
+  const preference = walletState.paymentDetailsReminderByAccount[accountId] || {}
+  walletState.paymentDetailsReminderByAccount[accountId] = {
+    suppressed: preference.suppressed === true || suppress === true,
+    dismissedOrderIds: { ...preference.dismissedOrderIds, ...(orderId == null ? {} : { [orderId]: true }) }
+  }
+}
+
 export function updateCashinOrderList (state, data) {
   const walletState = getOrInitWalletState(state)
   if (walletState) {

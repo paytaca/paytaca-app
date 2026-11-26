@@ -247,6 +247,6 @@ export class ChatIdentityManager {
   }
 
   async _updateEncryptionKeypair (update) {
-    await chatUtils.updateOrCreateKeypair(update)
+    await chatUtils.updateOrCreateKeypair(update, this.chatIdentity)
   }
 }

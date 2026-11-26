@@ -60,6 +60,11 @@ export function showAdLimitMessage (state) {
   return walletState.showAdLimitMessage ?? true
 }
 
+export function paymentDetailsReminder (state) {
+  const walletState = getWalletState(state)
+  return accountId => walletState.paymentDetailsReminderByAccount?.[accountId] || {}
+}
+
 export function cashinOrderList (state) {
   const walletState = getWalletState(state)
   return walletState.cashinOrderList || []

@@ -1,7 +1,8 @@
 <template>
+  <P2PAvailability :key="availabilityIdentity" :ready="isloaded || showRegistration || appDisabled" :user-type="isloaded ? user.user_type : false" @available="onP2PAvailable" :authentication-error="authenticationError" @authenticate="retryAuthentication">
   <div id="app-container" class="row" :class="getDarkModeClass(darkMode)" v-if="!openVersionUpdate">
     <router-view v-if="isloaded" :key="$route.name"></router-view>
-    
+    <RampLogin v-else-if="showRegistration" @logged-in="onRegistered" />
     <!-- Skeleton Loading State for Initial Auth -->
     <div v-else class="full-width">
       <!-- Header (visible during loading) -->
@@ -40,20 +41,27 @@
     </div>
   </div>
   <OngoingMaintenanceDialog v-if="appDisabled"/>
+  </P2PAvailability>
 </template>
 <script>
+import P2PAvailability from 'src/components/ramp/fiat/P2PAvailability.vue'
 import HeaderNav from 'src/components/header-nav.vue'
 import OngoingMaintenanceDialog from 'src/components/ramp/fiat/dialogs/OngoingMaintenanceDialog.vue'
 import versionUpdate from 'src/pages/transaction/dialog/versionUpdate.vue'
 import packageInfo from '../../../../package.json'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { backend } from 'src/exchange/backend'
+import { availabilityError, isP2PAvailabilityError } from 'src/exchange/availability'
 import { bus } from 'src/wallet/event-bus.js'
 import { loadRampWallet } from 'src/exchange/wallet'
+import { loadAuthenticatedUser } from 'src/exchange/auth'
+import RampLogin from 'src/components/ramp/fiat/RampLogin.vue'
 
 export default {
   components: {
+    P2PAvailability,
     HeaderNav,
+    RampLogin,
     OngoingMaintenanceDialog
   },
   data () {
@@ -64,37 +72,70 @@ export default {
       isloaded: false,
       openVersionUpdate: false,
       appDisabled: false,
-      continue: false
+      checking: false,
+      showRegistration: false,
+      authAttempt: 0,
+      authenticationError: null,
+      sessionRecoveryScope: null,
+      sessionRecoveryAt: 0,
+      disposed: false
     }
   },
   async created () {
     bus.on('websocket-disconnected', this.handleDisconnectedWS)
+    bus.on('session-expired', this.onSessionExpired)
+    bus.on('p2p-authentication-failed', this.onAuthenticationFailed)
   },
   beforeUnmount () {
+    this.disposed = true
+    this.authAttempt++
+    bus.off('websocket-disconnected', this.handleDisconnectedWS)
+    bus.off('session-expired', this.onSessionExpired)
+    bus.off('p2p-authentication-failed', this.onAuthenticationFailed)
     this.$store.commit('ramp/resetListingTabs')
     this.$store.commit('ramp/resetAppealListingTab')
   },
+  computed: {
+    availabilityIdentity () {
+      const arbiter = this.$route.matched.some(route => route.name === 'exchange-arbiter')
+      return JSON.stringify([this.walletIdentity, arbiter, this.user?.user_type, this.$store.getters['ramp/getUser']?.user_type])
+    },
+    walletIdentity () {
+      return JSON.stringify([
+        this.$store.getters['global/getWallet']('bch')?.walletHash,
+        this.$store.getters['global/getWalletIndex'],
+        this.$store.getters['global/isChipnet']
+      ])
+    }
+  },
   watch: {
+    walletIdentity: {
+      flush: 'sync',
+      handler () {
+        this.authAttempt++
+        this.authenticationError = null
+        this.sessionRecoveryScope = null
+        this.checking = false
+        this.isloaded = false
+        this.showRegistration = false
+        this.getUser()
+      }
+    },
     $route (to, from) {
+      const arbiter = to.matched.some(route => route.name === 'exchange-arbiter')
+      const wasArbiter = from.matched.some(route => route.name === 'exchange-arbiter')
+      if (arbiter !== wasArbiter && this.isloaded && arbiter !== this.user?.is_arbiter) this.getUser()
       if (from.path.includes('apps/exchange')) {        
         if ('ad_id' in to.query) {
           this.$router?.push({ name: 'p2p-store', query: to.query })
         }             
       }      
-    },
-    continue (val) {
-      // Only redirect on the exchange entry route itself; the exchange page
-      // also mounts as an ancestor of deeper routes (e.g. deep-linked
-      // p2p-order pages) and must not hijack those navigations
-      if (val && this.$route.name === 'exchange') {
-        this.goToMainPage()
-      }
     }
   },
   async mounted () {
     const appEnabled = this.$store.getters['global/appControl']
     if (appEnabled && appEnabled.P2P_EXCHANGE === false) {
-      this.appDisabled = !appEnabled
+      this.appDisabled = true
     } else {
       // Ensure wallet state is initialized before accessing getters
       const wallet = this.$store.getters['global/getWallet']('bch')
@@ -105,49 +146,87 @@ export default {
         this.$store.commit('paytacapos/initializeWalletState', walletHash)
       }
       
-      // Parallelize independent operations
-      const [versionCheckResult, rampWallet, userResult] = await Promise.allSettled([
-        this.checkVersionUpdate(),
-        loadRampWallet(),
-        this.getUser()
-      ])
-      
-      // Store wallet instance in Vuex to avoid duplicate loading
-      if (rampWallet.status === 'fulfilled') {
-        this.$store.commit('ramp/updateWallet', rampWallet.value)
-      }
-      
-      // Handle version check errors gracefully (non-blocking)
-      if (versionCheckResult.status === 'rejected') {
-        console.error('Version check failed:', versionCheckResult.reason)
-      }
-      
-      if (this.$route.name === 'exchange') {
-        this.goToMainPage()
-      }
+      await this.getUser()
+      if (!this.disposed && this.isloaded) this.checkVersionUpdate()
     }
   },
   methods: {
     getDarkModeClass,
-    async getUser () {
-      await backend.get('auth')
-        .then(async (response) => {
-          this.user = response.data
-          // Store user in Vuex for use by other components
-          this.$store.commit('ramp/updateUser', response.data)
-          this.continue = true
-          // Set isloaded earlier - don't wait for version check
-          this.isloaded = true
-        })
-        .catch(error => {
-          if (error.response?.data?.error === 'user does not exist') {
-            this.continue = true
-          } else {
-            console.error(error.response || error)
-          }
-          // Set isloaded even on error so UI can render
-          this.isloaded = true
-        })
+    onAuthenticationFailed (error) {
+      if (this.disposed) return
+      this.authAttempt++
+      this.checking = false
+      this.authenticationError = error
+      this.isloaded = false
+      this.showRegistration = false
+    },
+    onSessionExpired () {
+      if (this.checking || this.disposed || this.authenticationError) return
+      const scope = this.availabilityIdentity
+      if (this.sessionRecoveryScope === scope && Date.now() - this.sessionRecoveryAt < 60000) {
+        this.authenticationError = availabilityError()
+        this.isloaded = false
+        return
+      }
+      this.sessionRecoveryScope = scope
+      this.sessionRecoveryAt = Date.now()
+      return this.getUser(true)
+    },
+    retryAuthentication () {
+      if (this.checking || this.disposed) return
+      this.authenticationError = null
+      this.sessionRecoveryScope = null
+      return this.getUser()
+    },
+    onP2PAvailable () {
+      if (!this.isloaded && !this.showRegistration) return this.getUser()
+    },
+    async onRegistered () {
+      this.showRegistration = false
+      await this.getUser()
+    },
+    async getUser (forceLogin = false) {
+      if (this.checking || this.disposed || this.appDisabled) return
+      const attempt = ++this.authAttempt
+      const identity = this.walletIdentity
+      const isCurrent = () => !this.disposed && attempt === this.authAttempt && identity === this.walletIdentity
+      this.checking = true
+      this.isloaded = false
+      try {
+        const rampWallet = await loadRampWallet()
+        if (!isCurrent()) return
+        this.$store.commit('ramp/updateWallet', rampWallet)
+        const user = await loadAuthenticatedUser(forceLogin)
+        if (!isCurrent()) return
+        const arbiterRoute = this.$route.matched.some(route => route.name === 'exchange-arbiter')
+        if (this.$route.name !== 'exchange' && arbiterRoute !== !!user.is_arbiter) {
+          throw Object.assign(new Error('Use the correct P2P account type.'), { code: 'p2p_account_type_mismatch' })
+        }
+        this.user = user
+        this.$store.commit('ramp/updateUser', user)
+        this.showRegistration = false
+        this.isloaded = true
+        if (this.$route.name === 'exchange') this.goToMainPage()
+      } catch (error) {
+        if (!isCurrent()) return
+        if (isP2PAvailabilityError(error)) {
+          bus.emit('p2p-unavailable', error)
+          return
+        }
+        const arbiterRoute = this.$route.matched.some(route => route.name === 'exchange-arbiter')
+        if ((error?.code === 'p2p_account_missing' || error?.response?.status === 404) && !arbiterRoute) {
+          this.showRegistration = true
+        } else {
+          this.$q.notify({
+            type: 'error',
+            message: this.$t('P2PLoginFailed', {}, 'Unable to log in to P2P. Please try again.'),
+            timeout: 5000
+          })
+          await this.$router.replace('/apps')
+        }
+      } finally {
+        if (isCurrent()) this.checking = false
+      }
     },
      goToMainPage () {
         this.$store.commit('ramp/updateUser', this.user)
@@ -194,7 +273,7 @@ export default {
 
       if (platform) {
         // fetching version check - non-blocking, don't prevent UI from showing
-        backend.get(`/ramp-p2p/version/check/${platform}/`)
+        backend.get(`/ramp-p2p/version/check/${platform}/`, { authorize: this.user.user_type })
           .then(response => {
             if (!('error' in response.data)) {
               const latestVer = response.data?.latest_version
@@ -235,7 +314,7 @@ export default {
             }
           })
           .catch(error => {
-            console.error('Version check failed:', error)
+            console.error('Version check failed:', error?.response?.status || error?.code || 'Request failed')
             // Don't set appDisabled or isloaded here - version check is non-critical
           })
       }

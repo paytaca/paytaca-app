@@ -12,7 +12,7 @@
         />
       </div>
       <q-card-section>
-        <q-banner class="bg-info text-white q-mb-sm rounded-borders" dense>
+        <q-banner v-if="showExistingAdsNotice" class="bg-info text-white q-mb-sm rounded-borders" dense>
           <template v-slot:avatar>
             <q-icon name="info" color="white" />
           </template>
@@ -60,7 +60,8 @@ export default {
     }
   },
   props: {
-    fiatList: Array
+    fiatList: Array,
+    showExistingAdsNotice: Boolean
   },
   computed: {
     darkMode () {

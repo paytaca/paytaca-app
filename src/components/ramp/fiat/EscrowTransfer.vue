@@ -2,7 +2,31 @@
   <div
     class="escrow-transfer-container q-pt-sm q-mx-md text-bow"
     :class="getDarkModeClass(darkMode)">
-    <div class="q-mx-sm q-px-md">
+    <div v-if="availabilityFailure || loadFailure || maintenanceParticipants" class="pt-card q-pa-md q-mb-md br-15 p2p-feature-notice" :class="darkMode ? 'dark' : 'light'" role="alert">
+      <div class="row no-wrap items-start">
+        <q-icon name="info" color="blue" size="md" class="col-auto q-mr-md q-mt-xs" />
+        <div class="col text-weight-medium">
+          {{ maintenanceParticipants ? $t('P2PParticipantsNotApproved', {}, 'Escrow is unavailable because a participant is not approved for maintenance testing.') : availabilityFailure ? availabilityMessage : $t('P2PLoadFailed', {}, 'Unable to load this order. Please retry.') }}
+          <template v-if="maintenanceParticipants">
+            <q-list v-if="maintenanceParticipants.length" dense class="q-my-sm">
+              <q-item v-for="participant in maintenanceParticipants" :key="participant.role" class="q-px-none">
+                <q-item-section avatar>
+                  <q-icon :name="participant.allowed ? 'check_circle' : 'block'" :color="participant.allowed ? 'positive' : 'negative'" />
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label>{{ maintenanceParticipantRole(participant.role) }}<span v-if="participant.name">: {{ participant.name }}</span></q-item-label>
+                  <q-item-label caption>{{ participant.allowed ? $t('Approved', {}, 'Approved') : $t('NotApproved', {}, 'Not approved') }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+            <div>{{ $t('P2PRequestParticipantApproval', {}, 'Ask an administrator to approve the participant for maintenance testing, then retry.') }}</div>
+            <q-btn unelevated color="primary" no-caps class="q-mt-sm" :label="$t('Retry', {}, 'Retry')" :loading="loading" @click="loadData" />
+          </template>
+          <template v-else>{{ $t('RefreshToCheckAgain', {}, 'Refresh the page to check again.') }}</template>
+        </div>
+      </div>
+    </div>
+    <div v-if="!availabilityFailure && !loadFailure && !maintenanceParticipants" class="q-mx-sm q-px-md">
       
       <!-- Contract Information Section -->
       <div class="section-wrapper">
@@ -11,12 +35,12 @@
             {{ $t('ContractInformation', {}, 'Contract Information') }}
           </p>
           <q-icon 
-            :name="showContractInfo ? 'expand_less' : 'expand_more'" 
+            :name="contractInfoOpen ? 'expand_less' : 'expand_more'"
             size="sm" 
             color="blue-grey-6"
             class="q-mr-sm" />
         </div>
-        <q-list v-show="showContractInfo" class="pt-card payment-info-list" :class="getDarkModeClass(darkMode)">
+        <q-list v-show="contractInfoOpen" class="pt-card payment-info-list" :class="getDarkModeClass(darkMode)">
           <!-- Arbiter -->
           <q-item>
             <q-item-section>
@@ -140,7 +164,7 @@
       <q-btn
         :loading="loadCancelButton"
         flat
-        :disable="!showDragSlide"
+        :disable="sendingBch"
         label="Cancel order"
         class="q-space text-white br-15"
         color="blue-6"
@@ -167,7 +191,8 @@
 <script>
 import { bus } from 'src/wallet/event-bus.js'
 import { wallet } from 'src/exchange/wallet'
-import { backend } from 'src/exchange/backend'
+import { backend, assertP2PIdentity } from 'src/exchange/backend'
+import { fetchP2PAvailability, isP2PAvailabilityError, p2pAvailabilityMessage } from 'src/exchange/availability'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
 import RampContract from 'src/exchange/contract'
@@ -181,6 +206,10 @@ export default {
     return {
       darkMode: this.$store.getters['darkmode/getStatus'],
       loading: false,
+      disposed: false,
+      availabilityFailure: null,
+      loadFailure: false,
+      maintenanceParticipants: null,
       order: null,
       adData: null,
       selectedArbiter: null,
@@ -196,16 +225,16 @@ export default {
       escrowContract: null,
       escrowBalance: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 130 : this.$q.screen.height - 100,
-      loadCancelButton: false,
-      showContractInfo: false
+      loadCancelButton: false
     }
   },
-  emits: ['back', 'success', 'refresh', 'updateArbiterStatus', 'sending', 'cancel'],
+  emits: ['back', 'success', 'refresh', 'updateArbiterStatus', 'sending', 'cancel', 'update:contractInfoOpen'],
   components: {
     RampDragSlide
   },
   props: {
-    data: Object
+    data: Object,
+    contractInfoOpen: Boolean
   },
   watch: {
     sendingBch (val) {
@@ -219,6 +248,9 @@ export default {
     }
   },
   computed: {
+    availabilityMessage () {
+      return p2pAvailabilityMessage(this.$t.bind(this), this.availabilityFailure)
+    },
     contractAddressMatch () {
       const localContractAddress = this.escrowContract?.getAddress()
       return localContractAddress === this.contractAddress
@@ -227,7 +259,7 @@ export default {
       return this.arbiterOptions?.length > 0
     },
     showDragSlide () {
-      return (this.dragSlideOn && this.arbiterOptions?.length > 0 && !this.sendingBch && this.contractAddress)
+      return (!this.loading && !this.loadFailure && !this.availabilityFailure && !this.maintenanceParticipants && this.dragSlideOn && this.arbiterOptions?.length > 0 && !this.sendingBch && this.contractAddress)
     },
     arbiterOptionsMessage () {
       return `No available arbiter found for currency ${this.order?.ad?.fiat_currency?.symbol}`
@@ -249,18 +281,31 @@ export default {
   async mounted () {
     await this.loadData()
   },
+  beforeUnmount () {
+    this.disposed = true
+  },
   methods: {
     getDarkModeClass,
     toggleContractInfo () {
-      this.showContractInfo = !this.showContractInfo
+      this.$emit('update:contractInfoOpen', !this.contractInfoOpen)
     },
-    onReloadContractAddress () {
-      this.generateContractAddress(true)
+    async onReloadContractAddress () {
+      try {
+        await this.generateContractAddress(true)
+      } catch (error) {
+        console.error('Contract generation failed:', error?.response?.status || error?.code || 'Request failed')
+        return
+      }
       this.$emit('refresh')
     },
-    selectArbiter () {
+    async selectArbiter () {
       this.contractAddress = null
-      this.generateContractAddress()
+      try {
+        await this.generateContractAddress()
+      } catch (error) {
+        console.error('Contract generation failed:', error?.response?.status || error?.code || 'Request failed')
+        return
+      }
     },
     async loadContract () {
       const vm = this
@@ -290,25 +335,32 @@ export default {
       }
     },
     async loadData () {
+      if (this.loading || this.sendingBch) return
       this.loading = true
+      this.loadFailure = false
+      this.maintenanceParticipants = null
       this.order = this.data.order
-      await this.loadContract()
-      const transferAmount = this.data.transferAmount
-      this.transferAmount = satoshiToBch(transferAmount + this.fees?.total)
-
-      // if (this.order?.status?.value === 'CNF') {
-      //   this.$emit('refresh')
-      // }
-
-      this.loading = false
+      try {
+        const controls = await fetchP2PAvailability(backend, 'ORDER_ESCROW', { userType: 'peer' })
+        this.$store.commit('ramp/updateFeatureToggles', controls)
+        this.availabilityFailure = null
+        await this.loadContract()
+        this.transferAmount = satoshiToBch(this.data.transferAmount + this.fees?.total)
+      } catch (error) {
+        this.loadFailure = true
+        if (isP2PAvailabilityError(error)) this.availabilityFailure = error
+      } finally {
+        this.loading = false
+      }
     },
     async completePayment () {
       const vm = this
       vm.sendErrors = []
-      vm.escrowBch()
+      await vm.escrowBch()
     },
     async escrowBch () {
       const vm = this
+      if (vm.disposed || vm.sendingBch || vm.loading || vm.loadFailure || vm.maintenanceParticipants) return
       if (!vm.contractAddressMatch) {
         vm.sendErrors.push('Contract address mismatch')
         vm.dragSlideOn = true
@@ -317,15 +369,49 @@ export default {
       }
       console.log('Contract address matched. Sending BCH...')
       vm.sendingBch = true
+      const escrow = vm.escrowContract
+      const orderId = vm.order?.id
+      const address = vm.contractAddress
+      const amount = vm.transferAmount
+      const tradeAmount = Number(vm.order?.trade_amount)
+      const check = () => {
+        if (vm.disposed || vm.escrowContract !== escrow || vm.order?.id !== orderId ||
+            vm.order?.status?.value !== 'CNF' || Number(vm.order?.trade_amount) !== tradeAmount ||
+            vm.contractAddress !== address || vm.transferAmount !== amount || escrow.getAddress() !== address ||
+            !Number.isFinite(amount) || amount <= 0) {
+          throw new Error('The escrow details changed. Please reopen this order before funding.')
+        }
+        if (vm.txid || vm.$store.getters['ramp/getOrderTxid'](orderId, 'ESCROW')) {
+          throw new Error('Escrow funding was already sent. Retry verification without sending funds again.')
+        }
+      }
       try {
-        const utxos = await vm.escrowContract.getUtxos()
+        check()
+        const utxos = await escrow.getUtxos()
         if (vm.escrowBalance === 0 && utxos.length === 0) {
-          vm.$store.commit('ramp/clearOrderTxids', vm.order?.id)
           console.log(`Sending ${vm.transferAmount} BCH to ${vm.contractAddress}`)
-          const rawWallet = await wallet.getRawWallet()
+          const fundingWallet = wallet
+          const rawWallet = await fundingWallet.getRawWallet()
           const changeAddress = await getChangeAddress('bch', { isChipnet: rawWallet.isChipnet })
-          const result = await rawWallet.sendBch(vm.transferAmount, vm.contractAddress, changeAddress)
-          console.log('sendBch:', result)
+          await fetchP2PAvailability(backend, 'ORDER_ESCROW', { userType: 'peer' })
+          const orderResponse = await backend.get(`/ramp-p2p/order/${orderId}/`, {
+            authorize: 'peer', cache: false, params: { _fresh: Date.now() }, timeout: 10000
+          })
+          const currentOrder = orderResponse.data
+          if (orderResponse.status !== 200 || orderResponse.cached === true ||
+              String(currentOrder?.id) !== String(orderId) || currentOrder?.status?.value !== 'CNF' ||
+              Number(currentOrder?.trade_amount) !== tradeAmount) {
+            throw new Error('This order is no longer ready for escrow funding. Please refresh the order.')
+          }
+          const registered = await assertP2PIdentity({
+            public_key: escrow.publicKeys.seller,
+            address: escrow.addresses.seller,
+            address_path: wallet.addressPath()
+          }, 'peer')
+          fundingWallet.assertIdentity(registered)
+          check()
+          const result = await rawWallet.sendBch(amount, address, changeAddress)
+          console.debug('Escrow funding broadcast:', result?.success === true)
           if (result?.success) {
             vm.txid = result.txid
             const txidData = {
@@ -336,7 +422,11 @@ export default {
               }
             }
             vm.$store.commit('ramp/saveTxid', txidData)
-            vm.escrowBalance = await vm.escrowContract.getBalance(null, true)
+            try {
+              vm.escrowBalance = await vm.escrowContract.getBalance(null, true)
+            } catch {
+              vm.escrowBalance = null
+            }
             if (vm.order?.status?.value === 'CNF') {
               await vm.escrowPendingOrder()
             }
@@ -362,15 +452,21 @@ export default {
           vm.sendErrors.push('Contract already funded/multiple UTXOs found when contract only requires 1')
         }
       } catch (error) {
-        vm.sendErrors.push(error)
+        if (isP2PAvailabilityError(error)) {
+          vm.availabilityFailure = error
+          vm.sendErrors.push(vm.availabilityMessage)
+        } else {
+          vm.sendErrors.push(error?.message || String(error))
+        }
         vm.dragSlideOn = true
         vm.dragSlideKey++
+      } finally {
+        vm.sendingBch = false
+        vm.loading = false
       }
-      vm.sendingBch = false
     },
     async escrowPendingOrder () {
       const vm = this
-      vm.loading = true
       await backend.post(`/ramp-p2p/order/${vm.order?.id}/pending-escrow/`, null, { authorize: true })
         .catch(error => {
           this.handleRequestError(error)
@@ -396,6 +492,7 @@ export default {
         })
         .catch(error => {
           this.handleRequestError(error)
+          throw error
         })
     },
     getPlatform () {
@@ -426,12 +523,11 @@ export default {
         backend.post('/ramp-p2p/order/contract/', body, { headers: headers, authorize: true })
           .then(response => {
             vm.contractAddress = response.data?.address
-            vm.loading = false
+            vm.maintenanceParticipants = null
             resolve(response.data)
           })
           .catch(error => {
             this.handleRequestError(error)
-            vm.loading = false
             reject(error)
           })
       })
@@ -446,7 +542,7 @@ export default {
     onSecurityOk () {
       this.dragSlideOn = false
       this.dragSlideKey++
-      this.completePayment()
+      return this.completePayment()
     },
     onSecurityCancel () {
       this.dragSlideOn = true
@@ -506,9 +602,28 @@ export default {
         })
         .catch(error => {
           this.handleRequestError(error)
+          throw error
         })
     },
+    maintenanceParticipantRole (role) {
+      const labels = {
+        buyer: this.$t('Buyer', {}, 'Buyer'),
+        seller: this.$t('Seller', {}, 'Seller'),
+        arbiter: this.$t('Arbiter', {}, 'Arbiter')
+      }
+      return labels[role]
+    },
     handleRequestError (error) {
+      const data = error?.response?.data
+      if (data?.code === 'p2p_maintenance_participants' ||
+          data?.error === 'Maintenance testing requires approved peers and arbiters.') {
+        this.maintenanceParticipants = Array.isArray(data.participants)
+          ? data.participants.filter(participant =>
+            ['buyer', 'seller', 'arbiter'].includes(participant?.role) && typeof participant.allowed === 'boolean')
+          : []
+        this.dragSlideOn = false
+        return
+      }
       bus.emit('handle-request-error', error)
     }
   }

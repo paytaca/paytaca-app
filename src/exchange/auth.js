@@ -1,6 +1,6 @@
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin'
 import { Store } from 'src/store'
-import { backend } from './backend'
+import { backend, assertP2PIdentity } from 'src/exchange/backend'
 import { wallet as rampWallet, loadRampWallet } from './wallet'
 import { loadChatIdentity } from './chat'
 import { bus } from 'src/wallet/event-bus'
@@ -97,6 +97,7 @@ export class ExchangeUser {
     this.id = data?.id
     this.name = data?.name
     this.chat_identity_id = data?.chat_identity_id
+    this.wallet_hash = data?.wallet_hash
     this.public_key = data?.public_key
     this.address = data?.address
     this.address_path = data?.address_path
@@ -106,12 +107,12 @@ export class ExchangeUser {
   }
 
   async getOTP () {
-    const { data: { otp } } = await backend.get(`/auth/otp/${this.user_type}`)
+    const { data: { otp } } = await backend.get(`/auth/otp/${this.user_type}`, { authorize: false, cache: false, timeout: 10000 })
     return otp
   }
 
   isLoggedIn () {
-    return this.user.is_authenticated
+    return this.is_authenticated
   }
 
   async login (forceLogin) {
@@ -119,10 +120,11 @@ export class ExchangeUser {
     if (token && !forceLogin && this.isLoggedIn()) return token
 
     this.emitSignal('login')
-    deleteAuthToken(this.user_type)
+    await deleteAuthToken(this.user_type)
 
-    const libauthWallet = rampWallet.wallet
     const otp = await this.getOTP()
+    rampWallet.assertIdentity(this)
+    const libauthWallet = rampWallet.wallet
     const addressPath = rampWallet.addressPath()
     const privkey = libauthWallet.getPrivateKeyWifAt(addressPath)
     const pubkey = libauthWallet.getPubkeyAt(addressPath)
@@ -132,8 +134,8 @@ export class ExchangeUser {
       signature: signature,
       public_key: pubkey
     }
-    const loginResponse = await backend.post(`/auth/login/${this.user_type}`, body)
-    saveAuthToken(loginResponse.data.token, this.user_type)
+    const loginResponse = await backend.post(`/auth/login/${this.user_type}`, body, { authorize: false, timeout: 10000 })
+    await saveAuthToken(loginResponse.data.token, this.user_type)
     return loginResponse.data.token
   }
 
@@ -149,31 +151,7 @@ export class ExchangeUser {
   }
 
   async savePubkeyAndAddress () {
-    this.emitSignal('pubkey')
-
-    const libauthWallet = rampWallet.wallet
-    const addressPath = rampWallet.addressPath()
-    const pubkey = libauthWallet.getPubkeyAt(addressPath)
-    const address = libauthWallet.getAddressAt({ path: addressPath })
-    const payload = {
-      public_key: pubkey,
-      address: address,
-      address_path: addressPath
-    }
-
-    if (payload.public_key === this.public_key &&
-          payload.address === this.address &&
-          payload.address_path === this.address_path) {
-      console.log('Local wallet keys match server keys')
-      return Promise.resolve()
-    }
-
-    await backend.patch(`/ramp-p2p/${this.user_type}/`, payload, { authorize: true })
-      .then(response => {
-        console.log('Updated pubkey and address:', response.data)
-      })
-
-    return Promise.resolve()
+    rampWallet.assertIdentity(this)
   }
 
   emitSignal (step, params = { signal: 'next-login-step', data: '' }) {
@@ -197,8 +175,17 @@ export class ExchangeUser {
 }
 
 export async function fetchUser () {
-  const { data: userData } = await backend.get('/auth/')
-  return new ExchangeUser(userData)
+  try {
+    const { data: userData } = await backend.get('/auth/', { authorize: false, cache: false, timeout: 10000 })
+    return new ExchangeUser(userData)
+  } catch (error) {
+    const status = error?.response?.status
+    const message = error?.response?.data?.error || error?.response?.data?.detail
+    if (status === 404 || (status === 400 && /^user does not exist\.?$/i.test(message || ''))) {
+      error.code = 'p2p_account_missing'
+    }
+    throw error
+  }
 }
 
 export async function loadAuthenticatedUser (forceLogin = false) {
@@ -207,38 +194,70 @@ export async function loadAuthenticatedUser (forceLogin = false) {
 
     user.emitSignal(null, { signal: 'logging-in', data: true })
 
-    await user.login(!user.is_authenticated || forceLogin)
+    await user.savePubkeyAndAddress()
+    const token = await getAuthToken(user.user_type)
+    const verifySession = async () => {
+      await assertP2PIdentity(null, user.user_type, user)
+      user.is_authenticated = true
+      return true
+    }
+    let needsLogin = forceLogin || !token
+    if (!needsLogin) {
+      try {
+        needsLogin = !await verifySession()
+      } catch (error) {
+        if (error?.response?.status === 401 || error?.code === 'p2p_auth_required' ||
+            (error?.response?.status === 503 && error?.response?.data?.code === 'p2p_maintenance') ||
+            (error?.response?.status === 403 && /\b(?:invalid|expired)\b.*\btoken\b|\btoken\b.*\b(?:invalid|expired)\b/i.test(`${error.response.data?.detail || ''} ${error.response.data?.error || ''}`))) {
+          needsLogin = true
+        } else {
+          throw error
+        }
+      }
+    }
+    await user.login(needsLogin)
+    if (needsLogin && !await verifySession()) throw new Error('P2P login could not be confirmed.')
     
-    // Fetch chat identity and save pubkey/address in parallel
-    // Handle errors gracefully - chat identity might fail if not ready yet
-    await Promise.allSettled([
-      user.fetchChatIdentity().catch(error => {
-        // Chat identity errors are expected if identity not ready yet
-        // Don't log as error - it will be created/loaded when needed
-        // Handle both Error objects and string errors
-        const is403 = error?.response?.status === 403 || 
-                     (typeof error === 'string' && error.includes('chat identity'))
-        if (!is403) {
-          console.error('Error fetching chat identity:', error)
-        }
-      }),
-      user.savePubkeyAndAddress().catch(error => {
-        // Pubkey/address update errors are non-critical
-        // Only log if it's not a 403 (which means not authenticated, handled by login)
-        // Handle both Error objects and string errors
-        const is403 = error?.response?.status === 403 || 
-                     (typeof error === 'string' && error.includes('pubkey'))
-        if (!is403) {
-          console.error('Error saving pubkey and address:', error)
-        }
-      })
+    await user.savePubkeyAndAddress()
+    Store.commit('ramp/updateUser', user)
+    const chatScope = JSON.stringify([
+      getCurrentWalletHash(), Store.getters['global/getWalletIndex'], Store.getters['global/isChipnet']
     ])
+    const isCurrent = () => chatScope === JSON.stringify([
+      getCurrentWalletHash(), Store.getters['global/getWalletIndex'], Store.getters['global/isChipnet']
+    ])
+    const chatPreparation = Promise.resolve().then(async () => {
+      if (!isCurrent()) return false
+      try {
+        await user.fetchChatIdentity()
+      } catch (error) {
+        if (!isCurrent()) return false
+        if (error?.response?.status !== 401 || error?.code === 'p2p_chat_access_denied') throw error
+        await user.login(true)
+        if (!isCurrent()) return false
+        if (!await verifySession()) throw new Error('P2P login could not be confirmed.')
+        if (!isCurrent()) return false
+        await user.savePubkeyAndAddress()
+        await user.fetchChatIdentity()
+        if (isCurrent()) bus.emit('relogged')
+      }
+      return isCurrent() && !!user.chat_identity
+    }).catch(error => {
+      if (!isCurrent()) return false
+      if (error?.response?.status === 401 && error?.code !== 'p2p_chat_access_denied') bus.emit('session-expired')
+      else if (['p2p_chat_access_denied', 'p2p_chat_link_unavailable', 'p2p_identity_mismatch', 'p2p_account_type_mismatch'].includes(error?.code)) {
+        bus.emit('handle-request-error', error)
+      } else if (error?.response?.status !== 403) {
+        console.error('Error preparing P2P chat:', error?.response?.status || error?.code || 'Request failed')
+      }
+      return false
+    })
+    Object.defineProperty(user, 'chatPreparation', { value: chatPreparation })
 
     user.emitSignal(null, { signal: 'logging-in', data: false })
 
     return Promise.resolve(user)
   } catch (error) {
-    console.error(error)
     bus.emit('logging-in', false)
     return Promise.reject(error)
   }
@@ -273,19 +292,12 @@ export function getAuthToken (userType) {
     try {
       // Ensure ramp wallet is loaded and aligned with the current wallet hash.
       const currentWalletHash = getCurrentWalletHash()
-      if (!rampWallet?.walletHash || (currentWalletHash && rampWallet.walletHash !== currentWalletHash)) {
+      if (!rampWallet?.wallet || rampWallet.walletHash !== currentWalletHash || rampWallet.walletIndex !== Store.getters['global/getWalletIndex'] || rampWallet.isChipnet !== Store.getters['global/isChipnet']) {
         try {
           await loadRampWallet()
         } catch (error) {
-          // If wallet can't be loaded, try old global key as fallback
-          try {
-            const oldToken = await SecureStoragePlugin.get({ key: TOKEN_STORAGE_KEY_PREFIX })
-            resolve(oldToken.value)
-            return
-          } catch (e) {
-            resolve(null)
-            return
-          }
+          resolve(null)
+          return
         }
       }
       
@@ -344,11 +356,11 @@ export function getAuthToken (userType) {
  * This is used for explicit logout scenarios
  */
 export function deleteAuthToken (userType) {
-  deleteAuthTokenForUserType(userType)
+  const removal = deleteAuthTokenForUserType(userType)
   // Also remove legacy key for current wallet to prevent reusing wrong tokens.
   const walletHash = getCurrentWalletHash() || rampWallet?.walletHash
   const legacyKey = getLegacyWalletTokenStorageKey(walletHash)
-  if (legacyKey) SecureStoragePlugin.remove({ key: legacyKey })
+  return Promise.allSettled([removal, ...(legacyKey ? [SecureStoragePlugin.remove({ key: legacyKey })] : [])])
 }
 
 /**
@@ -358,6 +370,7 @@ export function deleteAuthToken (userType) {
  */
 export function deleteAuthTokenForWallet(walletHash) {
   if (!walletHash) return
+  bus.emit('p2p-auth-cleared', { walletHash })
   // Delete both user types + legacy key
   SecureStoragePlugin.remove({ key: `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}-peer` })
   SecureStoragePlugin.remove({ key: `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}-arbiter` })
@@ -373,16 +386,18 @@ export function deleteAuthTokenForWallet(walletHash) {
 export function deleteAuthTokenForUserType (userType) {
   const walletHash = getCurrentWalletHash() || rampWallet?.walletHash
   if (!walletHash) return
+  bus.emit('p2p-auth-cleared', { walletHash, userType })
 
   if (userType === 'peer' || userType === 'arbiter') {
     const key = `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}-${userType}`
-    SecureStoragePlugin.remove({ key })
-    return
+    return Promise.allSettled([SecureStoragePlugin.remove({ key })])
   }
 
   // Delete both if caller passed null/undefined (or unknown)
-  SecureStoragePlugin.remove({ key: `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}-peer` })
-  SecureStoragePlugin.remove({ key: `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}-arbiter` })
+  return Promise.allSettled([
+    SecureStoragePlugin.remove({ key: `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}-peer` }),
+    SecureStoragePlugin.remove({ key: `${TOKEN_STORAGE_KEY_PREFIX}-${walletHash}-arbiter` })
+  ])
  }
 
 let authController = null

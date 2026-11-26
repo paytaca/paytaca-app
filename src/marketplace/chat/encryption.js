@@ -205,6 +205,28 @@ export function decryptMessage(opts={data: '', iv: '', privkey: '', authorPubkey
   throw new Error(`Unable to decrypt data with any available pubkey. Attempted ${pubkeysToTry.length} pubkey(s). Errors: ${errors.join('; ')}`)
 }
 
+async function processAttachmentData (data, key, iv, decrypt = false) {
+  const bytes = Buffer.from(data)
+  const chunkSize = decrypt ? CHUNK_SIZE + 1 : CHUNK_SIZE
+  const output = Buffer.alloc(decrypt ? bytes.length : Math.ceil(bytes.length / CHUNK_SIZE) * (CHUNK_SIZE + 1))
+  let offset = 0
+  let lastYield = performance.now()
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    if (i % (chunkSize * 32) === 0 && performance.now() - lastYield >= 8) {
+      await new Promise(resolve => setTimeout(resolve, 0))
+      lastYield = performance.now()
+    }
+    const cipher = decrypt
+      ? crypto.createDecipheriv('aes-256-cbc', key, iv)
+      : crypto.createCipheriv('aes-256-cbc', key, iv)
+    const updated = cipher.update(bytes.subarray(i, i + chunkSize))
+    const final = cipher.final()
+    offset += updated.copy(output, offset)
+    offset += final.copy(output, offset)
+  }
+  return output.subarray(0, offset)
+}
+
 function privToPub(priv) {
   const privBytes = hexToBytes(priv)
   const pub = secp256k1.getPublicKey(privBytes)
@@ -328,7 +350,7 @@ export async function encryptImage(opts={ file: '', privkey: '', pubkeys: '' }) 
   const iv = crypto.randomFillSync(new Uint8Array(16))  
 
   const arrayBuffer = await file.arrayBuffer()
-  const encrypted = encryptData(arrayBuffer, globalKey, iv)
+  const encryptedBytes = await processAttachmentData(arrayBuffer, globalKey, iv)
 
   const pubkeys = pks.map(pubkey => {
     const ourPriv = hexToBytes(privkey)
@@ -339,7 +361,6 @@ export async function encryptImage(opts={ file: '', privkey: '', pubkeys: '' }) 
     return `${pubkey}|${sharedSecret}`
   })
 
-  const encryptedBytes = Buffer.from(encrypted, 'base64')
   const encryptedBlob = new Blob([encryptedBytes])
   const newFile = new nativeFileAPI.File([encryptedBlob], file?.name, { type: 'application/octet-stream' })
   return { file: newFile, authorPubkey: ourPubkey, pubkeys, iv: Buffer.from(iv).toString('base64') }
@@ -395,7 +416,7 @@ export async function decryptImage(opts={ file: null, privkey: '', pubkeys: '', 
       } else {
         key = Buffer.from(sharedX)
       }
-      const decryptedData = decryptData(arrayBuffer, key, ivBytes, { inputEncoding: 'binary', outputEncoding: 'binary' })
+      const decryptedData = await processAttachmentData(arrayBuffer, key, ivBytes, true)
       const decryptedBlob = new Blob([decryptedData])
       const decryptedFile = new nativeFileAPI.File([decryptedBlob], file?.name)
       return decryptedFile

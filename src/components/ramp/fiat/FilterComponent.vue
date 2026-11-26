@@ -118,7 +118,14 @@ export default {
     },
     async updateFilters () {
       const vm = this
-      const defaultPaymentTypes = await vm.$store.dispatch('ramp/fetchPaymentTypes', { currency: this.currency })
+      let defaultPaymentTypes
+      try {
+        defaultPaymentTypes = await vm.$store.dispatch('ramp/fetchPaymentTypes', { currency: this.currency })
+      } catch (error) {
+        if (error?.code === 'ERR_CANCELED' ||
+          (error?.code === 'ECONNABORTED' && error?.message === 'Request aborted')) return
+        throw error
+      }
 
       let getterName = ''
       let mutationName = ''

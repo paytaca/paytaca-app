@@ -131,7 +131,7 @@
                 class="col q-ml-xs"
                 size="md"
                 rounded
-                :disable="sendingBch"
+                :disable="sendingBch || recoveringSettlement"
                 :outline="selectedAction !== 'refund'"
                 :color="selectedAction === 'refund' ? 'blue-6' : 'grey-6'"
                 :label="$t('Refund')"
@@ -141,7 +141,7 @@
                 class="col q-ml-xs"
                 size="md"
                 rounded
-                :disable="sendingBch"
+                :disable="sendingBch || recoveringSettlement"
                 :outline="selectedAction !== 'release'"
                 :color="selectedAction === 'release' ? 'blue-6' : 'grey-6'"
                 :label="$t('Release')"
@@ -194,7 +194,7 @@
       v-touch-swipe.mouse="checkDragslideStatus"
       :key="dragSlideKey"
       v-if="showDragSlide && state === 'form' && !chatOpen"
-      :locked="!selectedAction"
+      :locked="!selectedAction || sendingBch || recoveringSettlement"
       @click="checkDragslideStatus()"
       @ok="onSubmit"
       @cancel="onSecurityCancel"
@@ -203,7 +203,7 @@
   </Teleport>
   <OrderStatusDialog v-if="showStatusHistory" :order-id="order?.id" @back="showStatusHistory = false" />
   <TransactionHistoryDialog v-if="showTransactionHistory" :data="txHistoryData" @back="showTransactionHistory = false"/>
-  <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
+  <AttachmentDialog account-type="arbiter" :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
   <NoticeBoardDialog v-if="showNoticeDialog" :type="'info'" action="'orders'" :message="noticeMessage" @hide="showNoticeDialog = false"/>
 </template>
 <script>
@@ -212,7 +212,8 @@ import OrderStatusDialog from 'src/components/ramp/appeal/dialogs/OrderStatusDia
 import RampDragSlide from '../fiat/dialogs/RampDragSlide.vue'
 import { formatCurrency, formatDate, formatOrderStatus, formatAddress } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
-import { backend } from 'src/exchange/backend'
+import { backend, assertP2PIdentity, ensureAppealPending, p2pErrorMessage } from 'src/exchange/backend'
+import { fetchP2PAvailability, isP2PAvailabilityError, p2pAvailabilityMessage } from 'src/exchange/availability'
 import { wallet } from 'src/exchange/wallet'
 import { openURL } from 'quasar'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
@@ -230,6 +231,7 @@ export default {
   },
   data () {
     return {
+      disposed: false,
       isChipnet: this.$store.getters['global/isChipnet'],
       darkMode: this.$store.getters['darkmode/getStatus'],
       wallet: null,
@@ -249,6 +251,7 @@ export default {
       showDragSlide: false,
       dragSlideKey: 0,
       sendingBch: false,
+      recoveringSettlement: false,
       sendError: null,
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - 110 : this.$q.screen.height - 85,
       showStatusHistory: false,
@@ -303,12 +306,24 @@ export default {
   },
   async mounted () {
     this.loadData()
-    this.fetchContractBalance().then((balance) => {
-      if (balance === 0 && this.order.status.value === 'APL') {
-        const result = this.loadTransactionId(this.order.id)
-        if (result.txid) this.setOrderPending(result.action)
-      }
+    this.fetchContractBalance().catch(error => {
+      if (!this.disposed) this.handleRequestError(error)
     })
+    const saved = this.loadTransactionId(this.order?.id)
+    if (this.order?.status?.value === 'APL' && saved.txid) {
+      this.recoveringSettlement = true
+      try {
+        await this.setOrderPending(saved.action)
+        if (!this.disposed) this.$emit('refresh')
+      } catch (error) {
+        if (!this.disposed) this.sendError = p2pErrorMessage(error, error.message || 'Unable to update the appeal status.')
+      } finally {
+        this.recoveringSettlement = false
+      }
+    }
+  },
+  beforeUnmount () {
+    this.disposed = true
   },
   methods: {
     formatDate,
@@ -349,7 +364,10 @@ export default {
     },
     fetchContractBalance () {
       return new Promise((resolve, reject) => {
-        if (!this.escrowContract) return 0
+        if (!this.escrowContract) {
+          resolve(0)
+          return
+        }
         this.escrowContract?.getBalance(null, true)
           .then(balance => {
             this.contractBalance = balance
@@ -360,38 +378,66 @@ export default {
     },
     async onSubmit () {
       const vm = this
+      if (vm.disposed || vm.sendingBch || vm.recoveringSettlement || !['release', 'refund'].includes(vm.selectedAction)) return
+      const action = vm.selectedAction
       vm.showDragSlide = false
       vm.sendingBch = true
-
-      let txid = null
-      if (vm.selectedAction === 'release') {
-        txid = await vm.releaseBch()
+      vm.sendError = null
+      try {
+        const saved = vm.loadTransactionId(vm.order?.id)
+        if (saved.txid && saved.action !== action) {
+          throw new Error('A different settlement transaction has already been broadcast. Refresh the order before continuing.')
+        }
+        const txid = saved.txid || await (action === 'release' ? vm.releaseBch() : vm.refundBch())
+        if (txid && !vm.disposed) await vm.setOrderPending(action)
+      } catch (error) {
+        if (!vm.disposed) {
+          vm.sendError = p2pErrorMessage(error, error.message || 'Unable to update the appeal status.')
+          vm.showDragSlide = true
+        }
+      } finally {
+        vm.sendingBch = false
+        if (!vm.disposed) vm.$emit('refresh')
       }
-      if (vm.selectedAction === 'refund') {
-        txid = await vm.refundBch()
-      }
-      if (txid) {
-        await vm.setOrderPending(vm.selectedAction)
-      }
-      vm.sendingBch = false
-      vm.$emit('refresh')
     },
     async setOrderPending (action) {
-      const vm = this
-      const url = `/ramp-p2p/appeal/${vm.appeal.id}/pending-${action}/`
-      await backend.post(url, {}, { authorize: 'arbiter' })
-        .catch(error => {
-          this.handleRequestError(error)
-        })
+      return ensureAppealPending(this.appeal?.id, this.order?.id, action)
     },
     async releaseBch () {
       const vm = this
       vm.sendError = null
       if (!vm.escrowContract) return
       const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
-      const keypair = wallet.keypair(arbiterMember.address_path)
+      const addressPath = arbiterMember?.address_path
+      const escrow = vm.escrowContract
+      const contract = vm.contract
+      const order = vm.order
+      const amount = order?.trade_amount
+      const orderId = order?.id
+      const status = order?.status?.value
+      const address = escrow.getAddress()
+      const signerWallet = wallet
+      try {
+        const registered = await assertP2PIdentity({
+          public_key: vm.escrowContract.publicKeys.arbiter,
+          address: vm.escrowContract.addresses.arbiter,
+          address_path: addressPath
+        }, 'arbiter')
+        await fetchP2PAvailability(backend, 'RELEASE_BCH', { userType: 'arbiter' })
+        signerWallet.assertIdentity(registered)
+        if (vm.disposed || vm.escrowContract !== escrow || vm.contract !== contract ||
+            vm.order !== order || vm.order?.id !== orderId || vm.order?.status?.value !== status ||
+            vm.order?.trade_amount !== amount || escrow.getAddress() !== address || contract.address !== address) {
+          throw new Error('The order details changed. Please reopen the order before spending escrow funds.')
+        }
+      } catch (error) {
+        vm.sendError = isP2PAvailabilityError(error) ? p2pAvailabilityMessage(vm.$t.bind(vm), error) : error.message
+        vm.showDragSlide = true
+        return
+      }
+      const keypair = signerWallet.keypair(addressPath)
       let txid = null
-      await vm.escrowContract.release(keypair.privateKey, keypair.publicKey, this.order.trade_amount)
+      await escrow.release(keypair.privateKey, keypair.publicKey, amount)
         .then(result => {
           console.log(result)
           if (result.success) {
@@ -421,9 +467,36 @@ export default {
       vm.sendError = null
       if (!vm.escrowContract) return
       const arbiterMember = (vm.contract?.members).find(member => { return member.member_type === 'ARBITER' })
-      const privateKey = wallet.privkey(arbiterMember.address_path)
+      const addressPath = arbiterMember?.address_path
+      const escrow = vm.escrowContract
+      const contract = vm.contract
+      const order = vm.order
+      const amount = order?.trade_amount
+      const orderId = order?.id
+      const status = order?.status?.value
+      const address = escrow.getAddress()
+      const signerWallet = wallet
+      try {
+        const registered = await assertP2PIdentity({
+          public_key: vm.escrowContract.publicKeys.arbiter,
+          address: vm.escrowContract.addresses.arbiter,
+          address_path: addressPath
+        }, 'arbiter')
+        await fetchP2PAvailability(backend, 'REFUND_BCH', { userType: 'arbiter' })
+        signerWallet.assertIdentity(registered)
+        if (vm.disposed || vm.escrowContract !== escrow || vm.contract !== contract ||
+            vm.order !== order || vm.order?.id !== orderId || vm.order?.status?.value !== status ||
+            vm.order?.trade_amount !== amount || escrow.getAddress() !== address || contract.address !== address) {
+          throw new Error('The order details changed. Please reopen the order before spending escrow funds.')
+        }
+      } catch (error) {
+        vm.sendError = isP2PAvailabilityError(error) ? p2pAvailabilityMessage(vm.$t.bind(vm), error) : error.message
+        vm.showDragSlide = true
+        return
+      }
+      const privateKey = signerWallet.privkey(addressPath)
       let txid = null
-      await vm.escrowContract.refund(privateKey, this.order.trade_amount)
+      await escrow.refund(privateKey, amount)
         .then(result => {
           console.log(result)
           if (result.success) {

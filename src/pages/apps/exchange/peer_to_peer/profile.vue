@@ -294,8 +294,7 @@ import { updateChatIdentity } from 'src/exchange/chat'
 import { formatDate, formatCurrency, getAppealCooldown } from 'src/exchange'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/exchange/backend'
-import { loadLibauthHdWallet } from 'src/wallet'
+import { backend, updateP2PProfile } from 'src/exchange/backend'
 
 export default {
   components: {
@@ -331,7 +330,6 @@ export default {
       minHeight: this.$q.platform.is.ios ? this.$q.screen.height - (80 + 120) : this.$q.screen.height - (50 + 100),
       pageName: null,
       errorDialogActive: false,
-      wallet: null,
       reportSubmitted: false,
       showReportDialog: false
     }
@@ -366,7 +364,6 @@ export default {
     bus.on('relogged', this.refreshData)
   },
   async mounted () {
-    await this.loadWallet()
     if (!this.userInfo) {
       this.pageName = 'main'
     }
@@ -386,11 +383,6 @@ export default {
       if (parent !== void 0 && parent.scrollTop > 0) {
         e.stopPropagation()
       }
-    },
-    async loadWallet () {
-      const isChipnet = this.$store.getters['global/isChipnet']
-      const walletIndex = this.$store.getters['global/getWalletIndex']
-      this.wallet = await loadLibauthHdWallet(walletIndex, isChipnet)
     },
     async onEditPayments () {
       this.state = 'edit-pm'
@@ -517,7 +509,7 @@ export default {
     },
     async updateUserName (info) {
       const vm = this
-      backend.patch('/ramp-p2p/peer/', { name: info.nickname }, { authorize: true })
+      updateP2PProfile('peer', { name: info.nickname })
         .then(response => {
           vm.$store.commit('ramp/updateUser', response.data)
           const payload = {
@@ -620,7 +612,6 @@ export default {
           }
         })
       }
-      }
     },
     confirmReportUser () {
       this.showReportDialog = true
@@ -654,6 +645,7 @@ export default {
       }
     }
   }
+}
 </script>
 <style lang="scss" scoped>
   .xs-font-size {

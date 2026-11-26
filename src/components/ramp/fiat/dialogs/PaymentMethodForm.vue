@@ -137,7 +137,7 @@
 <script>
 import ProgressLoader from 'src/components/ProgressLoader.vue'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/exchange/backend'
+import { backend, p2pErrorMessage } from 'src/exchange/backend'
 import { bus } from 'src/wallet/event-bus'
 
 export default {
@@ -202,7 +202,7 @@ export default {
       }
     },
     async fetchFiatCurrencies () {
-      await backend.get('/ramp-p2p/currency/fiat')
+      await backend.get('/ramp-p2p/currency/fiat', { authorize: 'peer' })
         .then(response => {
           this.fiatCurrencies = response.data
           if (!this.selectedCurrency && this.currency) {
@@ -298,14 +298,14 @@ export default {
       const vm = this
       const symbol = this.selectedCurrency?.symbol || this.currency
       if (!symbol) { this.paymentTypeOpts = []; return }
-      await backend.get('/ramp-p2p/payment-type', { params: { currency: symbol } })
+      await backend.get('/ramp-p2p/payment-type', { authorize: 'peer', params: { currency: symbol } })
         .then(response => {
           vm.paymentTypeOpts = response.data
         })
         .catch(error => {
-          console.error(error)
+          console.error(error?.response?.status || error?.code || 'Request failed')
           if (error.response) {
-            console.error(error.response)
+            console.error(error?.response?.status || error?.code || 'Request failed')
             if (error.response.status === 403) {
               bus.emit('session-expired')
             }
@@ -387,17 +387,20 @@ export default {
     async onSubmit () {
       this.errorMessage = null
       this.loading = true
-      switch (this.action) {
-        case 'deletePaymentMethod':
-          await this.deletePaymentMethod()
-          break
-        case 'addMethodFromAd':
-        case 'editPaymentMethod':
-        case 'createPaymentMethod':
-          await this.savePaymentMethod()
-          break
+      try {
+        switch (this.action) {
+          case 'deletePaymentMethod':
+            await this.deletePaymentMethod()
+            break
+          case 'addMethodFromAd':
+          case 'editPaymentMethod':
+          case 'createPaymentMethod':
+            await this.savePaymentMethod()
+            break
+        }
+      } finally {
+        this.loading = false
       }
-      this.loading = false
       if (!this.errorMessage) {
         this.$emit('success')
         this.$emit('back')
@@ -475,21 +478,13 @@ export default {
         })
     },
     async deletePaymentMethod () {
-      await backend.delete(`/ramp-p2p/payment-method/${this.paymentMethod.id}/`, { authorize: true })
-        .catch(error => {
-          console.error(error)
-          console.error(error.response)
-          if (error.response) {
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-            if (error.response.status === 400) {
-              this.errorMessage = error.response.data.error
-            }
-          } else {
-            bus.emit('network-error')
-          }
-        })
+      try {
+        await backend.delete(`/ramp-p2p/payment-method/${this.paymentMethod.id}/`, { authorize: true })
+        this.$q.notify({ type: 'positive', message: this.$t('PaymentMethodDeleted', {}, 'Payment method deleted.'), timeout: 5000 })
+      } catch (error) {
+        this.errorMessage = p2pErrorMessage(error, this.$t('UnableToDeletePaymentMethod', {}, 'Unable to delete this payment method. Please try again.'))
+        this.$q.notify({ type: 'error', message: this.errorMessage, timeout: 5000 })
+      }
     }
   }
 }

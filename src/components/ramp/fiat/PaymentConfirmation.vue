@@ -42,12 +42,17 @@
           <q-item-section>
             <q-item-label caption class="text-caption">{{ $t('ContractBalance') }}</q-item-label>
             <q-item-label class="payment-detail-text">
-              <span v-if="contractBalance">{{ contractBalance }} BCH</span>
+              <span v-if="contractBalance !== null">{{ contractBalance }} BCH</span>
+              <span v-else-if="contractBalanceError">{{ $t('BalanceUnavailable', {}, 'Balance unavailable') }}</span>
               <q-skeleton v-else type="text" width="100px" height="20px" />
             </q-item-label>
           </q-item-section>
         </q-item>
+      </q-list>
+    </div>
 
+    <div class="section-wrapper">
+      <q-list class="pt-card payment-info-list" :class="getDarkModeClass(darkMode)">
         <q-item clickable @click="copyToClipboard(fiatAmount)">
           <q-item-section>
             <q-item-label caption class="text-caption">
@@ -351,7 +356,7 @@
   @ok="onSecurityOk"
   @cancel="onSecurityCancel"/>
   <AppealForm v-if="showAppealForm" :userType="this.data?.type" :order="order" @back="onCloseAppealForm" @loadAppeal="onAppealSubmit"/>
-  <AttachmentDialog :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
+  <AttachmentDialog account-type="peer" :show="showAttachmentDialog" :url="attachmentUrl" @back="showAttachmentDialog=false"/>
   <NoticeBoardDialog v-if="showNoticeDialog" :type="'info'" action="'orders'" :message="noticeMessage" @hide="showNoticeDialog = false"/>
 </template>
 <script>
@@ -363,7 +368,8 @@ import { Camera } from '@capacitor/camera'
 import { wallet } from 'src/exchange/wallet'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
 import { getExplorerAddressLink } from 'src/utils/send-page-utils'
-import { backend } from 'src/exchange/backend'
+import { backend, assertP2PIdentity } from 'src/exchange/backend'
+import { fetchP2PAvailability, isP2PAvailabilityError, p2pAvailabilityMessage } from 'src/exchange/availability'
 import { bchToFiat, formatCurrency, satoshiToBch } from 'src/exchange'
 import { resizeImage, base64ImageToFile, dataUrlToFile } from 'src/marketplace/chat/attachment'
 import RampDragSlide from './dialogs/RampDragSlide.vue'
@@ -381,9 +387,11 @@ export default {
   },
   data () {
     return {
+      disposed: false,
       darkMode: this.$store.getters['darkmode/getStatus'],
       theme: this.$store.getters['global/theme'],
       contractBalance: null,
+      contractBalanceError: false,
       order: null,
       txid: null,
       isloaded: false,
@@ -559,6 +567,7 @@ export default {
     this.loadData()
   },
   beforeUnmount () {
+    this.disposed = true
     clearInterval(this.timer)
     this.timer = null
   },
@@ -986,19 +995,21 @@ onSelectAttachment (methodIndex, methodId) {
         vm.deletingAttachmentByMethodId = { ...vm.deletingAttachmentByMethodId, [method.id]: false }
       }
     },
-    fetchContractBalance () {
+    async fetchContractBalance () {
       const vm = this
-      if (vm.data?.contractBalance != null) {
+      vm.contractBalanceError = false
+      if (!vm.data?.escrow && vm.data?.contractBalance != null) {
         vm.contractBalance = vm.data.contractBalance
         return
       }
       if (vm.data?.escrow) {
-        vm.data?.escrow.getBalance(vm.data?.contract.address, true)
+        await vm.data?.escrow.getBalance(vm.data?.contract.address, true)
           .then(balance => {
             vm.contractBalance = balance
           })
-          .catch(error => {
-            console.error(error)
+          .catch(() => {
+            vm.contractBalance = null
+            vm.contractBalanceError = true
           })
       }
     },
@@ -1055,10 +1066,41 @@ onSelectAttachment (methodIndex, methodId) {
       const beContractAddr = vm.data?.contract.address
       if (feContractAddr !== beContractAddr) {
         vm.sendErrors.push('contract addresses mismatched')
+        vm.sendingBch = false
+        vm.showDragSlide = true
+        return
       }
       const sellerMember = (vm.data?.contract?.members).find(member => { return member.member_type === 'SELLER' })
-      const keypair = wallet.keypair(sellerMember.address_path)
-      await vm.data?.escrow.release(keypair.privateKey, keypair.publicKey, vm.order.trade_amount)
+      const addressPath = sellerMember?.address_path
+      const escrow = vm.data.escrow
+      const contract = vm.data.contract
+      const order = vm.order
+      const amount = order?.trade_amount
+      const orderId = order?.id
+      const status = order?.status?.value
+      const address = escrow.getAddress()
+      const signerWallet = wallet
+      try {
+        const registered = await assertP2PIdentity({
+          public_key: vm.data.escrow.publicKeys.seller,
+          address: vm.data.escrow.addresses.seller,
+          address_path: addressPath
+        }, 'peer')
+        await fetchP2PAvailability(backend, 'RELEASE_BCH', { userType: 'peer' })
+        signerWallet.assertIdentity(registered)
+        if (vm.disposed || vm.data.escrow !== escrow || vm.data.contract !== contract ||
+            vm.order !== order || vm.order?.id !== orderId || vm.order?.status?.value !== status ||
+            vm.order?.trade_amount !== amount || escrow.getAddress() !== address || contract.address !== address) {
+          throw new Error('The order details changed. Please reopen the order before spending escrow funds.')
+        }
+      } catch (error) {
+        vm.sendErrors.push(isP2PAvailabilityError(error) ? p2pAvailabilityMessage(vm.$t.bind(vm), error) : error.message)
+        vm.sendingBch = false
+        vm.showDragSlide = true
+        return
+      }
+      const keypair = signerWallet.keypair(addressPath)
+      await escrow.release(keypair.privateKey, keypair.publicKey, amount)
         .then(result => {
           if (result.success) {
             const txid = result.txInfo.txid

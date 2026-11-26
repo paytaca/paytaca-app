@@ -3,6 +3,7 @@ import { ElectrumNetworkProvider, Contract, SignatureTemplate } from 'cashscript
 import { Store } from 'src/store'
 import { hash160 } from 'bitauth-libauth-v3'
 import { sha256 } from 'js-sha256'
+import { backend } from 'src/exchange/backend'
 
 import Watchtower from 'src/lib/watchtower'
 const isChipnet = Store.getters['global/isChipnet']
@@ -98,7 +99,7 @@ export class RampContract {
     }
 
     // Deduplicate concurrent getBalance calls for the same address
-    const cacheKey = address
+    const cacheKey = JSON.stringify([address, retry])
     if (this._getBalancePromise && this._getBalanceKey === cacheKey) {
       return this._getBalancePromise
     }
@@ -116,23 +117,28 @@ export class RampContract {
   }
 
   async _fetchBalance (address, retry) {
-    let balance = 0
-    let watchtowerErrored = false
-    try {
-      const response = await watchtower.BCH._api.get(`/balance/bch/${address}/`)
-      balance = response?.data?.balance
-    } catch (error) {
-      console.error('Failed to fetch contract balance through watchtower:', error.response)
-      watchtowerErrored = true
+    const response = await backend.get(`/utxo/bch/${address}/`, {
+      authorize: false,
+      cache: false,
+      params: retry ? { _fresh: Date.now() } : undefined,
+      timeout: 10000
+    })
+    const errorMessage = 'The contract balance could not be read from Watchtower.'
+    if (response.status !== 200 || response.cached === true || response.data?.valid !== true ||
+        !Array.isArray(response.data?.utxos)) {
+      throw new Error(errorMessage)
     }
-    // Only fallback to CashScript/Electrum when Watchtower fails (errors),
-    // not when Watchtower returns a legitimate 0 balance.
-    if (retry && watchtowerErrored) {
-      console.warn('Refetched contract balance from cashscript built-in method getBalance()')
-      const rawBal = await this.contract.getBalance()
-      balance = Number(rawBal) / 1e8
+    let total = 0n
+    for (const utxo of response.data.utxos) {
+      const value = utxo?.value
+      if ((typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) &&
+          (typeof value !== 'string' || !/^\d+$/.test(value))) {
+        throw new Error(errorMessage)
+      }
+      total += BigInt(value)
     }
-    return balance
+    if (total > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error(errorMessage)
+    return Number(total) / 100000000
   }
 
   /**

@@ -1,8 +1,8 @@
 <template>
-  <div v-if="type === 'Profile'" class="sticky-header" :class="getDarkModeClass(darkMode)">
-    <HeaderNav :title="`P2P Ramp`" @click="onBack" />
+  <div v-if="type === 'Profile' && !embedded" class="sticky-header" :class="getDarkModeClass(darkMode)">
+    <HeaderNav :title="`P2P Ramp`" :backnavpath="$route.query.returnOrder ? { name: 'p2p-order', params: { order: $route.query.returnOrder } } : ''" @click="onBack" />
   </div>
-  <div v-if="type === 'Profile'" :style="{ height: headerOffset }"></div>
+  <div v-if="type === 'Profile' && !embedded" :style="{ height: headerOffset }"></div>
   <div class="q-mx-md q-mx-none text-bow"
     :class="getDarkModeClass(darkMode)">
     <div class="q-mx-md" v-if="isloaded">
@@ -248,7 +248,7 @@ import SelectPaymentMethods from './dialogs/SelectPaymentMethods.vue'
 import CurrencyFilterDialog from './dialogs/CurrencyFilterDialog.vue'
 import { bus } from 'src/wallet/event-bus.js'
 import { getDarkModeClass } from 'src/utils/theme-darkmode-utils'
-import { backend } from 'src/exchange/backend'
+import { backend, p2pErrorMessage } from 'src/exchange/backend'
 
 export default {
   components: {
@@ -260,6 +260,7 @@ export default {
   },
   props: {
     type: String,
+    embedded: Boolean,
     confirmLabel: {
       type: String,
       default: 'Next'
@@ -307,19 +308,18 @@ export default {
   },
   emits: ['submit', 'back'],
   beforeUnmount () {
-    if (this.type === 'Profile') {
+    if (this.type === 'Profile' && !this.embedded) {
       bus.emit('show-menu')
     }
   },
   async mounted () {
     const vm = this
     if (vm.type === 'Profile') {
+      if (!vm.embedded) bus.emit('hide-menu')
       await vm.fetchFiatCurrency()
-    }
-    await vm.fetchPaymentTypes()
-    if (vm.type === 'Profile') {
       await vm.fetchAllPaymentMethodsProfile()
     } else {
+      await vm.fetchPaymentTypes()
       await vm.fetchPaymentMethods()
     }
     switch (vm.type) {
@@ -330,9 +330,6 @@ export default {
         vm.paymentMethods = vm.currentPaymentMethods
         vm.selectedMethods = vm.currentPaymentMethods
         vm.validatePaymentMethods()
-        break
-      case 'Profile':
-        bus.emit('hide-menu')
         break
     }
     this.isloaded = true
@@ -403,11 +400,6 @@ export default {
   watch: {
     selectedCurrency () {
       this.fetchPaymentMethods()
-    },
-    fiatOption (val) {
-      if (this.type === 'Profile' && Array.isArray(val) && val.length > 0) {
-        this.fetchAllPaymentMethodsProfile()
-      }
     }
   },
   methods: {
@@ -557,20 +549,20 @@ export default {
     },
     async fetchFiatCurrency () {
       try {
-        const response = await backend.get('/ramp-p2p/currency/fiat')
+        const response = await backend.get('/ramp-p2p/currency/fiat', { authorize: 'peer' })
         this.fiatOption = response.data
       } catch (error) {
-        console.error(error)
+        console.error(error?.response?.status || error?.code || 'Request failed')
       }
     },
     async fetchPaymentTypes () {
       const vm = this
-      await backend.get('/ramp-p2p/payment-type/', { params: { currency: this.currency ? this.currency : this.selectedCurrency.symbol } })
+      await backend.get('/ramp-p2p/payment-type/', { authorize: 'peer', params: { currency: this.currency ? this.currency : this.selectedCurrency.symbol } })
         .then(response => {
           vm.paymentTypeOpts = response.data
         })
         .catch(error => {
-          console.error(error.response || error)
+          console.error(error?.response?.status || error?.code || 'Request failed')
           if (error.response) {
             if (error.response.status === 403) {
               bus.emit('session-expired')
@@ -637,26 +629,25 @@ export default {
       })
     },
     async deletePaymentMethod (index) {
-      const vm = this
-      vm.isloaded = false
-      await backend.delete(`/ramp-p2p/payment-method/${index}/`, { authorize: true })
-        .catch(error => {
-          console.error(error.response || error)
-          if (error.response) {
-            if (error.response.status === 403) {
-              bus.emit('session-expired')
-            }
-          } else {
-            bus.emit('network-error')
-          }
+      this.isloaded = false
+      try {
+        await backend.delete(`/ramp-p2p/payment-method/${index}/`, { authorize: true })
+        this.$q.notify({ type: 'positive', message: this.$t('PaymentMethodDeleted', {}, 'Payment method deleted.'), timeout: 5000 })
+        if (this.type === 'Profile') {
+          await this.fetchAllPaymentMethodsProfile()
+        } else {
+          await this.fetchPaymentMethods()
+        }
+        this.openDialog = false
+      } catch (error) {
+        this.$q.notify({
+          type: 'error',
+          message: p2pErrorMessage(error, this.$t('UnableToDeletePaymentMethod', {}, 'Unable to delete this payment method. Please try again.')),
+          timeout: 5000
         })
-      if (vm.type === 'Profile') {
-        await vm.fetchAllPaymentMethodsProfile()
-      } else {
-        await vm.fetchPaymentMethods()
+      } finally {
+        this.isloaded = true
       }
-      this.openDialog = false
-      vm.isloaded = true
     },
     async savePaymentMethod (info) {
       console.log('saving Payment method here')

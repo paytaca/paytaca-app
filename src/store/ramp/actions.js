@@ -1,4 +1,6 @@
+import { fetchP2PAvailability } from 'src/exchange/availability'
 import { Store } from '..'
+import { bus } from 'src/wallet/event-bus'
 import { backend } from 'src/exchange/backend'
 import { toRaw } from 'vue'
 import {
@@ -143,31 +145,6 @@ export function fetchAds (context, { component = null, params = null, overwrite 
 }
 
 
-export async function fetchCashinOrderList (context, { params = null }) {
-  // Setup pagination parameters using getters
-  const pageNumber = context.getters.cashinOrderListPage
-  const totalPages = context.getters.cashinOrderListTotalPage
-  if (pageNumber <= totalPages) {
-    const parameters = {
-      wallet_hash: params.wallet_hash,
-      page: pageNumber,
-      limit: params.limit || 15,
-      owned: params.owned
-    }
-
-    const apiURL = '/ramp-p2p/order/cash-in/'
-    await backend.get(apiURL, { params: parameters })
-      .then((response) => {
-        context.commit('updateCashinOrderList', response.data.orders)
-        context.commit('updateCashinOrderListTotalPage', response.data.total_pages)
-        return response.data
-      })
-      .catch(error => {
-        console.error(error.response || error)
-      })
-  }
-}
-
 export async function fetchOrders (context, { statusType = null, params = null, overwrite = false }) {
   return new Promise((resolve, reject) => {
     const state = context.state
@@ -263,7 +240,7 @@ export async function fetchOrders (context, { statusType = null, params = null, 
   })
 }
 
-export function fetchAppeals (context, { appealState = null, params = null, overwrite = false }) {
+export function fetchAppeals (context, { appealState = null, params = null, overwrite = false, signal = null }) {
   return new Promise((resolve, reject) => {
     const state = context.state
     const appealsPageNumber = context.getters.appealsPageNumber
@@ -289,7 +266,7 @@ export function fetchAppeals (context, { appealState = null, params = null, over
       if (pageNumber !== null) pageNumber++
       params.page = pageNumber
       params.limit = state.itemsPerPage
-      backend.get('/ramp-p2p/appeal/', { params: params, authorize: true })
+      backend.get('/ramp-p2p/appeal/', { params: params, authorize: 'arbiter', cache: false, timeout: 10000, signal })
         .then(response => {
           switch (appealState) {
             case 'PENDING':
@@ -318,97 +295,40 @@ export function fetchAppeals (context, { appealState = null, params = null, over
 }
 
 export function fetchPaymentTypes (context, { currency = null }) {
-  const currencyFormat = currency
-  currency = currency !== 'All' ? currency : null
-  const paymentTypesGetter = context.getters.paymentTypes
-  const previousPT = toRaw(paymentTypesGetter(currency === null ? 'All' : currency))
+  const currencyFormat = currency || 'All'
+  currency = currencyFormat !== 'All' ? currencyFormat : null
 
   return new Promise((resolve, reject) => {
-    backend.get('/ramp-p2p/payment-type', { params: { currency: currency } })
+    backend.get('/ramp-p2p/payment-type', { authorize: 'peer', params: { currency: currency } })
       .then(response => {
         const paymentTypes = response.data
-        // adding new payment type to default payment type filter
+        const previousPT = context.getters.paymentTypes(currencyFormat)
         if (previousPT) {
-          if (paymentTypes.length > previousPT.length) {
-            const diff = paymentTypes.filter(x => !previousPT.some(y => x.id === y.id))
-
-            diff.forEach((x) => {
-              let temp = null
-
-              // store filter - use getters to access wallet-specific state
-              const storeBuyFilters = context.getters.storeBuyFilters(currencyFormat)
-              const storeSellFilters = context.getters.storeSellFilters(currencyFormat)
-              const ongoingOrderFilters = context.getters.ongoingOrderFilters(currencyFormat)
-              const completedOrderFilters = context.getters.completedOrderFilters(currencyFormat)
-              
-              if (storeBuyFilters?.payment_types?.length === previousPT.length) {
-                temp = toRaw(storeBuyFilters)
-                temp.payment_types?.push(x.id)
-                context.commit('updateStoreBuyFilters', { filters: temp, currency: currencyFormat })
-              }
-              if (storeSellFilters?.payment_types?.length === previousPT.length) {
-                temp = toRaw(storeSellFilters)
-                temp.payment_types?.push(x.id)
-                context.commit('updateStoreSellFilters', { filters: temp, currency: currencyFormat })
-              }
-
-              // order filter
-              if (ongoingOrderFilters?.payment_types?.length === previousPT.length) {
-                temp = toRaw(ongoingOrderFilters)
-                temp.payment_types?.push(x.id)
-                context.commit('updateOngoingOrderFilters', { filters: temp, currency: currencyFormat })
-              }
-              if (completedOrderFilters?.payment_types?.length === previousPT.length) {
-                temp = toRaw(completedOrderFilters)
-                temp.payment_types?.push(x.id)
-                context.commit('updateCompletedOrderFilters', { filters: temp, currency: currencyFormat })
-              }
-            })
-          } else if (paymentTypes.length < previousPT.length) {
-            const diff = previousPT.filter(x => !paymentTypes.some(y => x.id === y.id))
-
-            diff.forEach((x) => {
-              // remove item from filter - use getters to access wallet-specific state
-              let temp = null
-              const storeBuyFilters = context.getters.storeBuyFilters(currencyFormat)
-              const storeSellFilters = context.getters.storeSellFilters(currencyFormat)
-              const ongoingOrderFilters = context.getters.ongoingOrderFilters(currencyFormat)
-              const completedOrderFilters = context.getters.completedOrderFilters(currencyFormat)
-
-              // store filter
-              if (storeBuyFilters?.payment_types?.length === previousPT.length) {
-                temp = toRaw(storeBuyFilters)
-                temp.payment_types = temp?.payment_types.filter(y => y !== x.id)
-                context.commit('updateStoreBuyFilters', { filters: temp, currency: currencyFormat })
-              }
-              if (storeSellFilters?.payment_types?.length === previousPT.length) {
-                temp = toRaw(storeSellFilters)
-                temp.payment_types = temp?.payment_types.filter(y => y !== x.id)
-                context.commit('updateStoreSellFilters', { filters: temp, currency: currencyFormat })
-              }
-
-              // order filters
-              if (ongoingOrderFilters?.payment_types?.length === previousPT.length) {
-                temp = toRaw(ongoingOrderFilters)
-                temp.payment_types = temp?.payment_types.filter(y => y !== x.id)
-                context.commit('updateOngoingOrderFilters', { filters: temp, currency: currencyFormat })
-              }
-              if (completedOrderFilters?.payment_types?.length === previousPT.length) {
-                temp = toRaw(completedOrderFilters)
-                temp.payment_types = temp?.payment_types.filter(y => y !== x.id)
-                context.commit('updateCompletedOrderFilters', { filters: temp, currency: currencyFormat })
-              }
-            })
-          }
+          const filterNames = ['storeBuyFilters', 'storeSellFilters', 'ongoingOrderFilters', 'completedOrderFilters']
+          filterNames.forEach(name => {
+            const filters = context.getters[name](currencyFormat)
+            const selected = filters?.payment_types
+            if (selected?.length === previousPT.length && previousPT.every(type => selected.includes(type.id))) {
+              const mutation = `update${name.charAt(0).toUpperCase()}${name.slice(1)}`
+              context.commit(mutation, {
+                filters: { ...toRaw(filters), payment_types: paymentTypes.map(type => type.id) },
+                currency: currencyFormat
+              })
+            }
+          })
         }
         context.commit('updatePaymentTypes', { paymentTypes: paymentTypes, currency: currencyFormat })
         resolve(paymentTypes)
       })
       .catch(error => {
-        if (error.response) {
-          console.error('Failed to fetch payment types:', error.response)
-        } else {
-          console.error('Failed to fetch payment types:', error)
+        const canceled = error?.code === 'ERR_CANCELED' ||
+          (error?.code === 'ECONNABORTED' && error?.message === 'Request aborted')
+        if (!canceled) {
+          if (error.response) {
+            console.error('Failed to fetch payment types:', error.response)
+          } else {
+            console.error('Failed to fetch payment types:', error)
+          }
         }
         reject(error)
       })
@@ -449,15 +369,28 @@ export function fetchUser (context) {
   })
 }
 
-export function fetchFeatureToggles (context) {
-  return new Promise((resolve, reject) => {
-    backend.get('/ramp-p2p/feature-toggles/')
-      .then(response => {
-        context.commit('updateFeatureToggles', response.data)
-        resolve(response.data)
-      })
-      .catch(error => {
-        reject(error)
-      })
-  })
+export async function fetchFeatureToggles (context) {
+  const scope = () => JSON.stringify([
+    Store.getters['global/getWallet']('bch')?.walletHash,
+    Store.getters['global/getWalletIndex'], Store.getters['global/isChipnet'],
+    Store.getters['ramp/getUser']?.user_type, Store.getters['ramp/getUser']?.is_arbiter, Store.getters['ramp/getUser']?.id
+  ])
+  const identity = scope()
+  let invalidated = false
+  const onAuthCleared = () => { invalidated = true }
+  bus.on('p2p-auth-cleared', onAuthCleared)
+  try {
+    const controls = await fetchP2PAvailability(backend)
+    if (invalidated || identity !== scope()) return {}
+    context.commit('updateFeatureToggles', controls)
+    return controls
+  } catch (error) {
+    if (!invalidated && identity === scope()) {
+      context.commit('updateFeatureToggles', null)
+      bus.emit('p2p-unavailable', error)
+    }
+    return {}
+  } finally {
+    bus.off('p2p-auth-cleared', onAuthCleared)
+  }
 }

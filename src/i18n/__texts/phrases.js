@@ -5,6 +5,11 @@
 const phrases = {
   static: [
     {
+      CheckYourPaymentDetails: 'Check your payment details',
+      OrderCreationPaymentDetailsReminder: 'Before creating this order, please confirm that your payment methods have the correct account name, account number, and other payment details. If anything is incorrect, update your payment methods before proceeding.',
+      OrderPaymentDetailsReminder: 'Before continuing with this order, please confirm that your payment methods have the correct account name, account number, and other payment details. If anything is incorrect, update your payment methods before proceeding.',
+      PaymentDetailsReminderDoNotShowAgain: 'Do not show this again',
+      ReviewPaymentMethods: 'Review payment methods',
       ID: 'ID',
       View: 'View',
       Edit: 'Edit',
