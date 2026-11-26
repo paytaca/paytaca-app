@@ -4996,3 +4996,56 @@ describe('Peer maintenance metadata authentication', () => {
     assert.equal(h.requests[0].headers.Authorization, 'Token synthetic-peer-token')
   })
 })
+
+
+describe('P2P payment filter defaults', () => {
+  async function refresh (previousIds, nextIds, selectedIds = previousIds, currency = 'PHP') {
+    const source = readFileSync('src/store/ramp/actions.js', 'utf8')
+    const start = source.indexOf('export function fetchPaymentTypes (')
+    const end = source.indexOf('\n}', start) + 2
+    const backend = { get: async () => ({ data: nextIds.map(id => ({ id })) }) }
+    const fetch = new Function('backend', 'toRaw', `${source.slice(start, end).replace('export ', '')}; return fetchPaymentTypes`)(backend, value => value)
+    const names = ['storeBuyFilters', 'storeSellFilters', 'ongoingOrderFilters', 'completedOrderFilters']
+    const filters = Object.fromEntries(names.map(name => [name, { payment_types: [...selectedIds], sort_type: 'descending' }]))
+    const commits = []
+    const getters = {
+      paymentTypes: () => previousIds.map(id => ({ id })),
+      ...Object.fromEntries(names.map(name => [name, () => filters[name]]))
+    }
+    await fetch({ getters, commit (name, payload) {
+      commits.push([name, payload])
+      if (name !== 'updatePaymentTypes') {
+        const key = name.slice(6, 7).toLowerCase() + name.slice(7)
+        filters[key] = payload.filters
+      }
+    } }, { currency })
+    return { filters: Object.values(filters), commits }
+  }
+
+  it('selects every method when multiple methods are first loaded', async () => {
+    const { filters } = await refresh([], [1, 2, 3])
+    for (const filter of filters) assert.deepEqual(filter.payment_types, [1, 2, 3])
+  })
+
+  it('keeps all selected when multiple methods are added or removed', async () => {
+    for (const [previous, next] of [[[1], [1, 2, 3]], [[1, 2, 3], [3]], [[1, 2], [2, 3]]]) {
+      const { filters } = await refresh(previous, next)
+      for (const filter of filters) assert.deepEqual(filter.payment_types, next)
+    }
+  })
+
+  it('preserves a custom selection when methods are added', async () => {
+    const { filters } = await refresh([1, 2], [1, 2, 3], [2])
+    for (const filter of filters) assert.deepEqual(filter.payment_types, [2])
+  })
+
+  it('does not mistake an unrelated selection of the same length for all selected', async () => {
+    const { filters } = await refresh([1, 2], [1, 2, 3], [1, 99])
+    for (const filter of filters) assert.deepEqual(filter.payment_types, [1, 99])
+  })
+
+  it('stores unscoped payment types and filters under All', async () => {
+    const { commits } = await refresh([], [1, 2, 3], [], null)
+    for (const [, payload] of commits) assert.equal(payload.currency, 'All')
+  })
+})
