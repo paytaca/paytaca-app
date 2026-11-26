@@ -158,7 +158,7 @@ export default {
         try {
           controls = await check()
         } catch (error) {
-          if (!isCurrent() || !this.confirmed || !['timeout', 'connection'].includes(error?.response?.data?.reason)) throw error
+          if (!isCurrent() || !['timeout', 'connection'].includes(error?.response?.data?.reason)) throw error
           controls = await check()
         }
         if (!isCurrent()) return

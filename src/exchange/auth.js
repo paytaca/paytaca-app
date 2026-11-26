@@ -207,6 +207,7 @@ export async function loadAuthenticatedUser (forceLogin = false) {
         needsLogin = !await verifySession()
       } catch (error) {
         if (error?.response?.status === 401 || error?.code === 'p2p_auth_required' ||
+            (error?.response?.status === 503 && error?.response?.data?.code === 'p2p_maintenance') ||
             (error?.response?.status === 403 && /\b(?:invalid|expired)\b.*\btoken\b|\btoken\b.*\b(?:invalid|expired)\b/i.test(`${error.response.data?.detail || ''} ${error.response.data?.error || ''}`))) {
           needsLogin = true
         } else {

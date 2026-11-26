@@ -392,6 +392,13 @@
                 </div>
               </q-banner>
 
+              <div v-if="attachmentSendStage || preparingChatAttachment" class="pt-card q-pa-sm q-mb-sm br-15" :class="getDarkModeClass(darkMode)" role="status" aria-live="polite">
+                <div class="row items-center text-caption q-mb-xs">
+                  <q-spinner size="sm" color="primary" class="q-mr-sm" />
+                  {{ attachmentSendStage !== 'uploading' ? $t('PreparingChatImage', {}, 'Preparing image…') : $t('UploadingChatImage', {}, 'Uploading image…') }}
+                </div>
+                <q-linear-progress indeterminate rounded color="primary" />
+              </div>
               <div v-if="canSendChatMessages" class="chat-input-container">
                 <q-btn
                   v-if="!chatAttachmentUrl"
@@ -426,7 +433,7 @@
                       :icon="sendingMessage ? 'sync' : 'send'" 
                       size="sm"
                       @click="sendChatMessage" 
-                      :disable="!chatMessageInput.trim() || sendingMessage || !canSendChatMessages"
+                      :disable="!chatMessageInput.trim() || preparingChatAttachment || sendingMessage || !canSendChatMessages"
                       :loading="sendingMessage"
                       class="send-button"
                     />
@@ -434,6 +441,11 @@
                 </q-input>
               </div>
               
+              <div v-if="chatAttachment && !chatMessageInput.trim()" class="pt-card q-pa-sm q-mt-sm br-15 text-caption" :class="getDarkModeClass(darkMode)" role="status" aria-live="polite">
+                <q-icon name="info" color="primary" class="q-mr-xs" />
+                {{ $t('ChatAttachmentMessageRequired', {}, 'Add a message to send this image.') }}
+              </div>
+
               <!-- Hidden file picker -->
               <q-file
                 v-show="false"
@@ -648,6 +660,8 @@ export default {
       chatMembersRaw: null,
       chatPubkeys: [],
       sendingMessage: false,
+      attachmentSendStage: null,
+      preparingChatAttachment: false,
       addingNewMessage: false,
       arbiterIdentity: null,
       chatMessagesKey: 0,
@@ -1592,30 +1606,22 @@ export default {
         return
       }
       
-      // Validate message is not empty
       if (!vm.chatMessageInput.trim()) {
-        if (vm.chatAttachment) {
-          vm.$q.notify({
-            type: 'warning',
-            message: vm.$t('MessageCannotBeEmpty', {}, 'Message cannot be empty. Please add text with your attachment.'),
-            position: 'top',
-            timeout: 3000
-          })
-        } else {
-          vm.$q.notify({
-            type: 'warning',
-            message: vm.$t('MessageCannotBeEmpty', {}, 'Message cannot be empty.'),
-            position: 'top',
-            timeout: 3000
-          })
-        }
+        vm.$q.notify({
+          type: 'warning',
+          message: vm.chatAttachment
+            ? vm.$t('ChatAttachmentMessageRequired', {}, 'Add a message to send this image.')
+            : vm.$t('MessageCannotBeEmpty', {}, 'Message cannot be empty.'),
+          position: 'top',
+          timeout: 3000
+        })
         return
       }
-      
-      if (vm.sendingMessage) return
-      
+      if (vm.sendingMessage || vm.preparingChatAttachment) return
+
       try {
         vm.sendingMessage = true
+        vm.attachmentSendStage = vm.chatAttachment ? 'preparing' : null
         const originalMessage = vm.chatMessageInput.trim()
         let attachment = vm.chatAttachment
         let useFormData = false
@@ -1713,6 +1719,7 @@ export default {
         vm.addMessageToChat(tempChatMessage)
         
         // Send message to API
+        if (hasAttachment) vm.attachmentSendStage = 'uploading'
         const response = await sendChatMessageAPI(data, originalMessage)
         
         // Extract the actual data from axios response
@@ -1789,6 +1796,7 @@ export default {
         console.error('Error sending message:', error)
       } finally {
         vm.sendingMessage = false
+        vm.attachmentSendStage = null
       }
     },
 
@@ -2058,6 +2066,7 @@ export default {
         return
       }
       
+      this.preparingChatAttachment = true
       try {
         // Resize the image with proper options
         const resizedImage = await resizeImage({
@@ -2083,6 +2092,8 @@ export default {
         })
         this.chatAttachment = null
         this.chatAttachmentUrl = null
+      } finally {
+        this.preparingChatAttachment = false
       }
     },
 

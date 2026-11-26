@@ -667,6 +667,32 @@ describe('P2P maintenance screen', () => {
     assert.equal(h.vm.screenKey, screenKey)
   })
 
+  it('retries a transient timeout on a fresh availability check before showing an error', async () => {
+    const h = screenHarness()
+    let attempts = 0
+    h.state.get = async () => {
+      if (++attempts === 1) throw { code: 'ECONNABORTED', message: 'timeout of 10000ms exceeded' }
+      return { status: 200, data: available }
+    }
+    await h.vm.retry()
+    assert.equal(attempts, 2)
+    assert.equal(h.vm.confirmed, true)
+    assert.equal(h.vm.error, null)
+  })
+
+  it('keeps P2P blocked when both fresh availability attempts time out', async () => {
+    const h = screenHarness()
+    let attempts = 0
+    h.state.get = async () => {
+      attempts++
+      throw { code: 'ECONNABORTED', message: 'timeout of 10000ms exceeded' }
+    }
+    await h.vm.retry()
+    assert.equal(attempts, 2)
+    assert.equal(h.vm.confirmed, false)
+    assert.equal(h.vm.error.response.data.reason, 'timeout')
+  })
+
   it('does not retry a failed poll after its account context is reset', async () => {
     const h = screenHarness()
     h.state.controls = available
@@ -684,7 +710,7 @@ describe('P2P maintenance screen', () => {
     let attempts = 0
     h.state.get = async () => { attempts++; throw { code: 'ERR_NETWORK' } }
     await h.vm.retry()
-    assert.equal(attempts, 1)
+    assert.equal(attempts, 2)
     assert.equal(h.vm.confirmed, false)
     assert.equal(h.vm.error.response.data.reason, 'connection')
   })
@@ -2330,10 +2356,11 @@ describe('P2P login chat authentication recovery', () => {
     assert.deepEqual(h.events, ['delete-peer', 'session-expired'])
   })
 
-  function authHarness ({ failures = 1, authenticated = true, deferredRemoval = false, initialToken = true } = {}) {
+  function authHarness ({ failures = 1, authenticated = true, deferredRemoval = false, initialToken = true, userType = 'peer' } = {}) {
     const h = identityHarness()
+    h.registered.is_arbiter = userType === 'arbiter'
     const events = []
-    const tokens = new Map(initialToken ? [['ramp-p2p-auth-key-synthetic-wallet-peer', 'synthetic-old-token']] : [])
+    const tokens = new Map(initialToken ? [[`ramp-p2p-auth-key-synthetic-wallet-${userType}`, 'synthetic-old-token']] : [])
     const session = { checks: [], responses: [] }
     let releaseRemoval
     let chatRequests = 0
@@ -2353,7 +2380,7 @@ describe('P2P login chat authentication recovery', () => {
         },
         async set ({ key, value }) { tokens.set(key, value); events.push('save-token'); return { value } },
         async remove ({ key }) {
-          if (deferredRemoval && key.endsWith('-peer')) {
+          if (deferredRemoval && key.endsWith(`-${userType}`)) {
             deferredRemoval = false
             await new Promise(resolve => { releaseRemoval = resolve })
           }
@@ -2370,8 +2397,8 @@ describe('P2P login chat authentication recovery', () => {
             if (session.lookupError) throw session.lookupError
             return { status: 200, data }
           }
-          if (url === '/ramp-p2p/peer/') {
-            assert.equal(config.authorize, 'peer')
+          if (url === (userType === 'peer' ? '/ramp-p2p/peer/' : '/ramp-p2p/arbiter/synthetic-wallet/')) {
+            assert.equal(config.authorize, userType)
             session.checks.push(config)
             const profile = { ...data }
             delete profile.address_path
@@ -2381,14 +2408,14 @@ describe('P2P login chat authentication recovery', () => {
             if (response.status !== 200) throw { response }
             return response
           }
-          assert.equal(url, '/auth/otp/peer')
+          assert.equal(url, `/auth/otp/${userType}`)
           assert.equal(config.timeout, 10000)
           events.push('otp')
           if (session.otpError) throw session.otpError
           return { data: { otp: 'synthetic-otp' } }
         },
         async post (url, body, config) {
-          assert.equal(url, '/auth/login/peer')
+          assert.equal(url, `/auth/login/${userType}`)
           assert.equal(config.timeout, 10000)
           events.push('login')
           return { data: { token: `synthetic-new-token-${++logins}` } }
@@ -2490,6 +2517,32 @@ describe('P2P login chat authentication recovery', () => {
         assert.equal(h.tokens.get('ramp-p2p-auth-key-synthetic-wallet-peer'), 'synthetic-new-token-1')
       })
     }
+  }
+
+  for (const userType of ['peer', 'arbiter']) {
+    it(`refreshes a saved ${userType} token once when maintenance masks its rejection`, async () => {
+      const h = authHarness({ failures: 0, userType })
+      h.session.responses.push({ status: 503, data: { code: 'p2p_maintenance' } })
+      const user = await h.loadAuthenticatedUser()
+      assert.equal(user.user_type, userType)
+      assert.equal(h.counts().logins, 1)
+      assert.equal(h.session.checks.length, 2)
+      assert(h.session.checks.every(config => config.authorize === userType))
+      assert.equal(h.tokens.get(`ramp-p2p-auth-key-synthetic-wallet-${userType}`), 'synthetic-new-token-1')
+    })
+
+    it(`keeps an unapproved ${userType} blocked when maintenance still rejects the fresh session`, async () => {
+      const h = authHarness({ failures: 0, userType })
+      h.session.responses.push(
+        { status: 503, data: { code: 'p2p_maintenance' } },
+        { status: 503, data: { code: 'p2p_maintenance' } }
+      )
+      await assert.rejects(h.loadAuthenticatedUser(), error => error.response.data.code === 'p2p_maintenance')
+      assert.equal(h.counts().logins, 1)
+      assert.equal(h.counts().chatRequests, 0)
+      assert.equal(h.session.checks.length, 2)
+      assert(!h.events.includes('commit-user'))
+    })
   }
 
   it('does not treat a permission-related 403 as an expired token', async () => {
@@ -6530,5 +6583,107 @@ describe('P2P attachment reveal guard', () => {
     await h.reveal()
     assert.deepEqual(h.calls, [])
     assert.equal(h.message.$state.decryptingAttachment, false)
+  })
+})
+
+describe('P2P attachment send status', () => {
+  function harness (withAttachment = true) {
+    const requests = []
+    const notifications = []
+    let finishEncryption
+    let finishUpload
+    let rejectUpload
+    const source = readFileSync('src/pages/apps/exchange/peer_to_peer/order.vue', 'utf8')
+    const start = source.indexOf('    async sendChatMessage (')
+    const end = source.indexOf('\n    },', start) + 7
+    const bindings = {
+      encryptMessage: () => ({}), compressEncryptedMessage: () => 'synthetic-encrypted-text',
+      encryptImage: () => new Promise(resolve => { finishEncryption = resolve }),
+      compressEncryptedImage: async () => new Blob(['synthetic-encrypted-image']),
+      sendChatMessageAPI: (...args) => {
+        requests.push(args)
+        return new Promise((resolve, reject) => { finishUpload = resolve; rejectUpload = reject })
+      },
+      ChatMessage: { parse: data => ({ ...data }) }, console: { error () {} }
+    }
+    const methods = new Function(...Object.keys(bindings), `return { ${source.slice(start, end)} }`)(...Object.values(bindings))
+    const vm = {
+      canSendChatMessages: true, chatMessageInput: 'Image description',
+      chatAttachment: withAttachment ? new Blob(['synthetic-image']) : null,
+      chatAttachmentUrl: withAttachment ? 'blob:synthetic-preview' : null,
+      keypair: { privkey: 'synthetic-private', pubkey: 'synthetic-public' }, chatPubkeys: ['synthetic-recipient'],
+      chatIdentity: { ref: 'synthetic-author' }, chatRef: 'synthetic-chat', chatMessages: [],
+      $t: (key, params, fallback) => fallback || key,
+      $q: { notify: notification => notifications.push(notification) },
+      addMessageToChat (message) { this.chatMessages.push(message) }
+    }
+    return {
+      vm, requests, notifications, send: () => methods.sendChatMessage.call(vm),
+      encrypt: () => finishEncryption({}), upload: () => finishUpload({ data: { id: 7 } }),
+      fail: () => rejectUpload(new Error('Synthetic upload failure'))
+    }
+  }
+
+  it('shows preparation and keeps uploading visible after clearing the input and preview', async () => {
+    const h = harness()
+    const pending = h.send()
+    assert.equal(h.vm.attachmentSendStage, 'preparing')
+    h.encrypt()
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(h.vm.chatAttachmentUrl, null)
+    assert.equal(h.vm.chatMessageInput, '')
+    assert.equal(h.vm.attachmentSendStage, 'uploading')
+    assert.equal(h.vm.sendingMessage, true)
+    h.upload()
+    await pending
+    assert.equal(h.vm.attachmentSendStage, null)
+    assert.equal(h.vm.sendingMessage, false)
+  })
+
+  it('clears the upload status after failure', async () => {
+    const h = harness()
+    const pending = h.send()
+    h.encrypt()
+    await new Promise(resolve => setImmediate(resolve))
+    h.fail()
+    await pending
+    assert.equal(h.vm.attachmentSendStage, null)
+    assert.equal(h.vm.sendingMessage, false)
+  })
+
+  it('does not show an image uploading status for text-only messages', async () => {
+    const h = harness(false)
+    const pending = h.send()
+    assert.equal(h.vm.attachmentSendStage, null)
+    h.upload()
+    await pending
+    assert.equal(h.vm.attachmentSendStage, null)
+  })
+
+  it('requires a message with an attachment and explains why it cannot be sent', async () => {
+    const h = harness()
+    h.vm.chatMessageInput = '   '
+    await h.send()
+    assert.deepEqual(h.requests, [])
+    assert.equal(h.notifications.length, 1)
+    assert.equal(h.notifications[0].message, 'Add a message to send this image.')
+    assert(h.vm.chatAttachment)
+    assert.equal(h.vm.chatAttachmentUrl, 'blob:synthetic-preview')
+  })
+
+  it('waits until the selected image has finished resizing', async () => {
+    const h = harness()
+    h.vm.preparingChatAttachment = true
+    await h.send()
+    assert.deepEqual(h.requests, [])
+    assert.notEqual(h.vm.sendingMessage, true)
+  })
+
+  it('still rejects an empty message without an attachment', async () => {
+    const h = harness(false)
+    h.vm.chatMessageInput = '   '
+    await h.send()
+    assert.deepEqual(h.requests, [])
+    assert.equal(h.notifications.length, 1)
   })
 })
