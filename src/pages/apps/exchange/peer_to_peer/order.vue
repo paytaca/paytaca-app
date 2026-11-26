@@ -2277,7 +2277,7 @@ export default {
         from_peer: vm.$store.getters['ramp/getUser'].id,
         order_id: vm.order.id
       }
-      await backend.get(url, { params: params, authorize: true })
+      await backend.get(url, { params: params, authorize: 'peer' })
         .then(response => {
           if (response.data) {
             const data = response.data.feedbacks[0]
@@ -2603,7 +2603,7 @@ export default {
         rating: feedback.rating,
         comment: feedback.comment
       }
-      await backend.post(url, body, { authorize: true })
+      await backend.post(url, body, { authorize: 'peer' })
         .then(response => {
           const data = response.data
           vm.feedback = {

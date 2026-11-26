@@ -33,7 +33,6 @@ function resolveRequestUserType (config) {
   if (
     // Arbiter-only functional areas
     /\/ramp-p2p\/appeal\b/i.test(url) ||
-    /\/ramp-p2p\/order\/feedback\/arbiter\b/i.test(url) ||
     /\/ramp-p2p\/order\/\d+\/appeal\b/i.test(url) ||
     // Arbiter profile lookups like /ramp-p2p/arbiter/<walletHash>
     /\/ramp-p2p\/arbiter\/[^/?]+/i.test(url) ||

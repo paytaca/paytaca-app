@@ -48,7 +48,11 @@
             </q-item-label>
           </q-item-section>
         </q-item>
+      </q-list>
+    </div>
 
+    <div class="section-wrapper">
+      <q-list class="pt-card payment-info-list" :class="getDarkModeClass(darkMode)">
         <q-item clickable @click="copyToClipboard(fiatAmount)">
           <q-item-section>
             <q-item-label caption class="text-caption">

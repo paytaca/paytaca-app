@@ -6687,3 +6687,65 @@ describe('P2P attachment send status', () => {
     assert.equal(h.notifications.length, 1)
   })
 })
+
+describe('Peer feedback authentication', () => {
+  function harness () {
+    const h = identityHarness({
+      storedUser: { user_type: 'arbiter' },
+      tokenForRole: role => role === 'peer' ? 'synthetic-peer-token' : null
+    })
+    const backend = {
+      async get (url, config) {
+        const response = await h.client.get(url, config)
+        return { ...response, data: url.endsWith('/status/') ? [{ status: { value: 'APL' } }] : { feedbacks: [] } }
+      },
+      async post (url, body, config) {
+        const response = await h.client.post(url, body, config)
+        return { ...response, data: { id: 7, ...body } }
+      }
+    }
+    const source = readFileSync('src/components/ramp/fiat/dialogs/FeedbackForm.vue', 'utf8')
+    const script = source.match(/<script>([\s\S]*?)<\/script>/)[1].replace(/^import .*$/gm, '').replace('export default', 'return')
+    const form = new Function('backend', 'bus', 'getDarkModeClass', 'ProgressLoader', script)(backend, { emit: name => h.events.push(name) }, () => '', {})
+    const emitted = []
+    const vm = {
+      ...form.methods, orderId: 17, appealed: false,
+      feedback: { rating: 5, comment: 'Synthetic peer review' },
+      arbiterFeedback: { rating: 4, comment: 'Synthetic arbiter review' },
+      $store: { getters: { 'ramp/getUser': { id: 12 } } },
+      $emit: (...args) => emitted.push(args), autoClose () {}
+    }
+    return { ...h, vm, emitted }
+  }
+
+  it('loads peer and arbiter feedback using the peer token even when arbiter state is cached', async () => {
+    const h = harness()
+    await h.vm.checkAppeal()
+    assert.equal(h.vm.appealed, true)
+    await h.vm.fetchFeedback()
+    assert.equal(h.requests.length, 3)
+    assert(h.requests.every(config => config.headers.Authorization === 'Token synthetic-peer-token'))
+    assert(h.requests.some(config => config.url.endsWith('/feedback/arbiter/')))
+    assert.deepEqual(h.events, [])
+  })
+
+  it('posts reviews of both participants using peer authentication', async () => {
+    const h = harness()
+    h.vm.appealed = true
+    h.vm.sendFeedback()
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(h.requests.length, 2)
+    assert(h.requests.every(config => config.headers.Authorization === 'Token synthetic-peer-token'))
+    assert(h.requests.every(config => config.method === 'post'))
+    assert.equal(h.vm.btnLoading, false)
+    assert.equal(h.emitted[0][0], 'submit')
+    assert.deepEqual(h.events, [])
+  })
+
+  it('does not infer arbiter credentials merely because a peer is reviewing an arbiter', async () => {
+    const h = identityHarness({ storedUser: { user_type: 'peer' }, tokenForRole: role => role === 'peer' ? 'synthetic-peer-token' : null })
+    await h.client.get('/ramp-p2p/order/feedback/arbiter/', { authorize: true })
+    assert.equal(h.requests[0].headers.Authorization, 'Token synthetic-peer-token')
+    assert.deepEqual(h.events, [])
+  })
+})

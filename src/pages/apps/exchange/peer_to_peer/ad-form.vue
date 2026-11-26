@@ -388,6 +388,7 @@
   </div>
   <div v-if="currentStep === 3 && adFeatureEnabled && !authPending">
     <DisplayConfirmation
+      :submitting="submittingAd"
       :post-data="confirmationData"
       :ptl="appealCooldown"
       :transaction-type="transactionType"

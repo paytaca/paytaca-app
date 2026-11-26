@@ -149,9 +149,24 @@
         </div>
       </div>
 
+      <div v-if="submitting" class="fixed-bottom q-px-lg q-pt-md" style="z-index: 1500; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));" role="status" aria-live="polite">
+        <q-btn
+          loading
+          rounded
+          unelevated
+          no-caps
+          size="lg"
+          class="full-width q-py-sm text-weight-bold bg-grad button"
+        >
+          <template v-slot:loading>
+            <q-spinner class="q-mr-sm" />
+            {{ $t('SavingAd', {}, 'Saving ad…') }}
+          </template>
+        </q-btn>
+      </div>
       <RampDragSlide
         :key="dragSlideKey"
-        v-if="showDragSlide"
+        v-if="showDragSlide && !submitting"
         :style="{
           position: 'fixed',
           bottom: 0,
@@ -203,6 +218,7 @@ export default {
     RampDragSlide
   },
   props: {
+    submitting: Boolean,
     type: {
       type: String,
       default: 'ads'

@@ -234,7 +234,7 @@ export default {
       }
       await backend.get(url, {
         params: params,
-        authorize: true
+        authorize: 'peer'
       })
         .then(response => {
           if (response.data?.feedbacks?.length > 0) {
@@ -269,7 +269,7 @@ export default {
 
         await backend.get(arbiterUrl, {
           params: arbiterParams,
-          authorize: true
+          authorize: 'peer'
         })
           .then(response => {
             if (response.data?.feedbacks?.length > 0) {
@@ -306,7 +306,7 @@ export default {
         rating: vm.feedback.rating,
         comment: vm.feedback.comment
       }
-      backend.post(url, body, { authorize: true })
+      backend.post(url, body, { authorize: 'peer' })
         .then(response => {
           vm.feedback = response.data
 
@@ -341,7 +341,7 @@ export default {
           comment: vm.arbiterFeedback.comment
         }
 
-        backend.post(arbiterUrl, arbiterBody, { authorize: true })
+        backend.post(arbiterUrl, arbiterBody, { authorize: 'peer' })
           .then(response => {
             vm.arbiterFeedback = response.data
 
