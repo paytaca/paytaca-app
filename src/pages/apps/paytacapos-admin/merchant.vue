@@ -320,6 +320,18 @@
                       </q-item-section>
                     </q-item>
                     <q-item
+                      clickable
+                      v-close-popup
+                      :disable="!posDevice?.branchId"
+                      @click="openMarketplaceInviteDialog(posDevice)"
+                    >
+                      <q-item-section>
+                        <q-item-label>
+                          {{ $t('CreateMarketplaceAdminInviteLink', {}, 'Create marketplace admin link') }}
+                        </q-item-label>
+                      </q-item-section>
+                    </q-item>
+                    <q-item
                       v-if="!posDevice?.isNFCPaymentsEnabled?.() && posDevice?.isLinked?.()"
                       clickable
                       v-close-popup
@@ -406,6 +418,93 @@
       :pos-device="salesReportDialog.posDevice"
       :merchant-id="merchantId"
     />
+    <q-dialog v-model="marketplaceInviteDialog.show" @hide="resetMarketplaceInviteDialog">
+      <q-card
+        class="br-15 pt-card-2 text-bow"
+        :class="getDarkModeClass(darkMode)"
+        style="width:min(420px, 90vw)"
+      >
+        <div class="row no-wrap items-center q-pl-lg q-pr-sm q-py-sm">
+          <div class="text-h6 q-space">
+            {{ $t('MarketplaceAdminInvite', {}, 'Marketplace admin invite') }}
+          </div>
+          <q-btn flat round dense icon="close" v-close-popup />
+        </div>
+        <q-card-section class="q-pt-none q-px-lg q-pb-lg">
+          <div v-if="marketplaceInviteDialog.loading" class="column items-center q-py-lg">
+            <q-spinner color="brandblue" size="2.5em" />
+            <div class="q-mt-md text-grey">
+              {{ $t('CreatingInviteLink', {}, 'Creating invite link') }}
+            </div>
+          </div>
+          <div v-else-if="marketplaceInviteDialog.error" class="column items-center q-py-md">
+            <q-icon name="error_outline" size="2.5em" color="negative" />
+            <div class="text-center q-mt-md">{{ marketplaceInviteDialog.error }}</div>
+            <q-btn
+              outline
+              rounded
+              no-caps
+              class="q-mt-lg button button-text-primary"
+              :label="$t('TryAgain', {}, 'Try again')"
+              @click="mintMarketplaceInvite()"
+            />
+          </div>
+          <template v-else-if="marketplaceInviteDialog.inviteUrl">
+            <div class="text-caption text-grey q-mb-md">
+              <q-icon name="info" size="1.2em" class="q-mr-xs" />
+              {{ $t('MarketplaceAdminInviteWarning', {}, 'Anyone with this link can create a marketplace account with shop admin access. It can be used only once, so send it to one person only.') }}
+            </div>
+            <div class="qr-code-container">
+              <div class="row items-center justify-center">
+                <qr-code
+                  :key="marketplaceInviteDialog.inviteUrl"
+                  :qr-id="21"
+                  :text="marketplaceInviteDialog.inviteUrl"
+                  :size="200"
+                />
+              </div>
+            </div>
+            <q-field dense outlined readonly :dark="darkMode" class="q-mt-md full-width">
+              <template v-slot:control>
+                <div class="ellipsis">{{ marketplaceInviteDialog.inviteUrl }}</div>
+              </template>
+              <template v-slot:append>
+                <q-btn
+                  padding="sm"
+                  flat
+                  icon="content_copy"
+                  :dark="darkMode"
+                  @click="copyMarketplaceInviteLink()"
+                />
+              </template>
+            </q-field>
+            <div v-if="marketplaceInviteExpiryText" class="text-grey text-caption q-mt-sm">
+              {{ $t('ExpiresOn', {}, 'Expires on') }} {{ marketplaceInviteExpiryText }}
+            </div>
+            <div class="row items-center justify-center q-gutter-sm q-mt-lg">
+              <q-btn
+                outline
+                rounded
+                no-caps
+                icon="content_copy"
+                class="button button-text-primary"
+                :label="$t('CopyLink', {}, 'Copy link')"
+                @click="copyMarketplaceInviteLink()"
+              />
+              <q-btn
+                outline
+                rounded
+                no-caps
+                icon="share"
+                class="button button-text-primary"
+                :label="$t('Share', {}, 'Share')"
+                @click="shareMarketplaceInviteLink()"
+              />
+            </div>
+          </template>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </q-pull-to-refresh>
   <EnableNFCPaymentsForm v-if="showEnableNFCPaymentsForm" :wallet="wallet" :pos-device="posDeviceToEnableNFC" @close="showEnableNFCPaymentsForm = false" />
 </template>
@@ -419,8 +518,10 @@ import { convertIpfsUrl, IPFS_DOMAINS } from 'src/wallet/cashtokens';
 import { bus } from 'src/wallet/event-bus';
 import { capitalize, computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useStore } from 'vuex'
-import { debounce, useQuasar } from 'quasar'
+import { debounce, useQuasar, copyToClipboard, Platform } from 'quasar'
 import { useI18n } from 'vue-i18n'
+import { Share } from '@capacitor/share'
+import { formatTimestampToText } from 'src/wallet/anyhedge/formatters'
 import HeaderNav from 'src/components/header-nav.vue'
 import BranchFormDialog from 'src/components/paytacapos/BranchFormDialog.vue'
 import MerchantInfoDialog from 'src/components/paytacapos/MerchantInfoDialog.vue'
@@ -790,6 +891,237 @@ function openLinkDeviceDialog(posDevice) {
     }
   })
     .onDismiss(() => refetchPosDevice(posDevice))
+}
+
+const marketplaceInviteDialog = ref({
+  show: false,
+  loading: false,
+  error: '',
+  inviteUrl: '',
+  expiresAt: null,
+  branchId: null,
+})
+
+const marketplaceInviteExpiryText = computed(() => {
+  const expiresAt = marketplaceInviteDialog.value?.expiresAt
+  if (!expiresAt) return ''
+  return formatTimestampToText(expiresAt * 1000)
+})
+
+function openMarketplaceInviteDialog(posDevice) {
+  hidePopups()
+  const branchId = Number(posDevice?.branchId)
+  if (!Number.isSafeInteger(branchId) || branchId <= 0) return
+
+  marketplaceInviteDialog.value = {
+    show: true,
+    loading: false,
+    error: '',
+    inviteUrl: '',
+    expiresAt: null,
+    branchId: branchId,
+  }
+  mintMarketplaceInvite()
+}
+
+function resetMarketplaceInviteDialog() {
+  marketplaceInviteDialog.value = {
+    show: false,
+    loading: false,
+    error: '',
+    inviteUrl: '',
+    expiresAt: null,
+    branchId: null,
+  }
+}
+
+function generateMarketplaceInviteNonce() {
+  const bytes = new Uint8Array(16)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')
+}
+
+function buildMarketplaceInviteMessage({ branchId, roles, pubkey, nonce, timestamp }) {
+  return [
+    'connecta:shop-bootstrap-admin:v1',
+    String(Math.trunc(branchId)),
+    [...new Set(roles)].sort().join(','),
+    String(pubkey).toLowerCase(),
+    nonce,
+    String(Math.trunc(timestamp)),
+  ].join(':')
+}
+
+function marketplaceInviteErrorMessage(error) {
+  const response = error?.response
+  const data = response?.data
+  if (response?.status === 429) {
+    const retryAfter = Number(response?.headers?.['retry-after'])
+    if (Number.isFinite(retryAfter) && retryAfter > 0) {
+      return $t(
+        'MarketplaceInviteTooManyAttemptsRetry',
+        { seconds: retryAfter },
+        'Too many attempts. Try again in {seconds} seconds.',
+      )
+    }
+    return $t('MarketplaceInviteTooManyAttempts', {}, 'Too many attempts. Try again in a minute.')
+  }
+  if (response?.status === 400 && data?.detail) {
+    return $t(
+      'MarketplaceInviteVerificationFailed',
+      {},
+      'Could not verify this wallet as the shop owner.',
+    )
+  }
+  if (response?.status === 400 && data && typeof data === 'object') {
+    const fields = Object.keys(data).join(', ')
+    return $t(
+      'MarketplaceInviteMalformedRequest',
+      { fields },
+      'Invalid invite request ({fields}). Please update the app and try again.',
+    )
+  }
+  return error?.message || $t('FailedToCreateInviteLink', {}, 'Failed to create invite link')
+}
+
+async function resolveMerchantWalletDetails() {
+  const stored = merchantInfo.value
+  const hasIndex = Number.isSafeInteger(Number(stored?.index)) && Number(stored?.index) >= 0
+  if (hasIndex && stored?.pubkey) {
+    return { index: Number(stored.index), pubkey: String(stored.pubkey).toLowerCase() }
+  }
+
+  const response = await posBackend.get('paytacapos/merchants/', {
+    params: { wallet_hashes: walletData.value?.walletHash, limit: 100 },
+  })
+  const list = Array.isArray(response?.data?.results) ? response.data.results : []
+  const record = list.find(item => String(item?.id) === String(merchantId))
+  if (!record) {
+    throw new Error($t(
+      'MarketplaceInviteWalletMismatch',
+      {},
+      'The wallet on this device does not match the merchant wallet registered for this shop.',
+    ))
+  }
+  return { index: Number(record?.index) || 0, pubkey: String(record?.pubkey || '').toLowerCase() }
+}
+
+async function mintMarketplaceInvite() {
+  const branchId = marketplaceInviteDialog.value?.branchId
+  if (!branchId) return
+
+  marketplaceInviteDialog.value = {
+    ...marketplaceInviteDialog.value,
+    loading: true,
+    error: '',
+    inviteUrl: '',
+    expiresAt: null,
+  }
+
+  try {
+    if (!wallet.value?.BCH) throw new Error($t('WalletNotReady', {}, 'Wallet is not ready'))
+
+    const merchant = await resolveMerchantWalletDetails()
+    const addressPath = `0/${merchant.index}`
+    const pubkey = await wallet.value.BCH.getPublicKey(addressPath)
+    if (!pubkey) throw new Error($t('WalletKeyUnavailable', {}, 'Unable to access the wallet key for this merchant'))
+
+    // Signed by the key Watchtower registered for this merchant, so a mismatched
+    // wallet fails here instead of being rejected by the server.
+    if (merchant.pubkey && merchant.pubkey !== pubkey.toLowerCase()) {
+      throw new Error($t(
+        'MarketplaceInviteWalletMismatch',
+        {},
+        'The wallet on this device does not match the merchant wallet registered for this shop.',
+      ))
+    }
+
+    let privkey
+    try {
+      privkey = await wallet.value.BCH.getPrivateKey(addressPath)
+    } catch (error) {
+      const readOnly = /read-only|signing/i.test(error?.message || '')
+      throw new Error(readOnly
+        ? $t('MarketplaceInviteWatchOnlyWallet', {}, 'This is a watch-only wallet, so it cannot sign an invite.')
+        : (error?.message || $t('WalletKeyUnavailable', {}, 'Unable to access the wallet key for this merchant')))
+    }
+    if (!privkey) throw new Error($t('WalletKeyUnavailable', {}, 'Unable to access the wallet key for this merchant'))
+
+    const roles = ['shop_admin']
+    const nonce = generateMarketplaceInviteNonce()
+    const timestamp = Date.now()
+    const message = buildMarketplaceInviteMessage({ branchId, roles, pubkey, nonce, timestamp })
+    const signature = signMessage(privkey, message)
+
+    const response = await marketplaceBackend.post('users/shop-bootstrap-admin/', {
+      watchtower_branch_id: branchId,
+      roles,
+      pubkey,
+      nonce,
+      timestamp,
+      signature,
+    }, { skipSigning: true })
+
+    const data = response?.data || {}
+    if (!data.invite_url) throw new Error($t('FailedToCreateInviteLink', {}, 'Failed to create invite link'))
+
+    marketplaceInviteDialog.value = {
+      ...marketplaceInviteDialog.value,
+      inviteUrl: data.invite_url,
+      expiresAt: Number.isFinite(Number(data.expires_at)) ? Number(data.expires_at) : null,
+    }
+  } catch (error) {
+    marketplaceInviteDialog.value.error = marketplaceInviteErrorMessage(error)
+  } finally {
+    marketplaceInviteDialog.value.loading = false
+  }
+}
+
+function copyMarketplaceInviteLink() {
+  const inviteUrl = marketplaceInviteDialog.value?.inviteUrl
+  if (!inviteUrl) return
+  copyToClipboard(inviteUrl)
+    .then(() => {
+      $q.notify({
+        type: 'positive',
+        message: $t('InviteLinkCopied', {}, 'Invite link copied'),
+        icon: 'check',
+        timeout: 1500,
+      })
+    })
+    .catch(() => {
+      $q.notify({
+        type: 'error',
+        message: $t('FailedToCopy', {}, 'Failed to copy'),
+        timeout: 5000,
+      })
+    })
+}
+
+async function shareMarketplaceInviteLink() {
+  const inviteUrl = marketplaceInviteDialog.value?.inviteUrl
+  if (!inviteUrl) return
+
+  const title = $t('MarketplaceAdminInvite', {}, 'Marketplace admin invite')
+  const text = $t(
+    'MarketplaceAdminInviteShareMessage',
+    {},
+    'Create your Paytaca marketplace shop admin account using this one-time link:',
+  )
+  try {
+    if (Platform.is.nativeMobile) {
+      await Share.share({ title, text, url: inviteUrl, dialogTitle: title })
+      return
+    }
+    if (navigator.share) {
+      await navigator.share({ title, text, url: inviteUrl })
+      return
+    }
+    copyMarketplaceInviteLink()
+  } catch (error) {
+    if (error?.message?.includes('Share canceled') || error?.name === 'AbortError') return
+    copyMarketplaceInviteLink()
+  }
 }
 
 async function deviceUnlinkRequest(posDevice) {
@@ -1394,5 +1726,18 @@ function resetCashoutData () {
       line-height: 1.25;
       min-height: 1.75rem;
     }
+  }
+
+  .qr-code-container {
+    margin-left: -10px;
+    margin-right: -10px;
+    padding: 1rem;
+    background-color: #fff;
+    border-radius: 16px;
+    border: 1px solid rgba(128, 128, 128, 0.2);
+    display: flex;
+    flex-flow: column;
+    justify-content: center;
+    align-content: center;
   }
 </style>

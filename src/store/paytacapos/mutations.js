@@ -98,6 +98,7 @@ function parseMerchantData(data) {
   return {
     id: data?.id,
     index: data?.index,
+    pubkey: data?.pubkey,
     walletHash: data?.wallet_hash,
     name: data?.name,
     verificationTokenCategory: data?.minter?.category,
