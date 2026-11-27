@@ -26,6 +26,9 @@ export async function getPrivateKeyAt (walletType = 'bch', network = 'mainnet', 
 // Signs as the wallet named by `walletHash`, not the active wallet. Returns
 // null when the wallet has no mnemonic (watch-only), so callers can send the
 // request unsigned while the server is still in log mode.
+//
+// Hub request signing pins addressIndex to 0 (`0/0`); see
+// engagementhub-utils/api.js for why it must not follow lastAddressIndex.
 export async function getPrivateKeyForWallet (walletHash, walletType = 'bch', network = 'mainnet', addressIndex = 0) {
     if (!walletHash) return null;
     const mnemonic = await getMnemonic(walletHash).catch(() => null);

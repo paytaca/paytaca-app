@@ -15,6 +15,13 @@ export const ENGAGEMENT_HUB_URL =
 // wrapper do not pull the whole derivation stack in at module load.
 const hubSigningHooks = {
   getWalletHash: async () => Store.getters['global/getWallet']('bch')?.walletHash,
+  // Always sign at m/44'/145'/0'/0/0. Wallet creation subscribes index 0
+  // first and discovery always starts there, so it is the one address a wallet
+  // is expected to have registered; the hub binds the presented key to that
+  // address's wallet digest, and the digest is per wallet, not per index. Do
+  // not substitute lastAddressIndex: an unsubscribed index is a 403 even in
+  // log mode, and a different derivation path would hash to a different
+  // wallet.
   getPrivateKey: async (walletHash) => {
     const { getPrivateKeyForWallet } = await import('src/utils/wallet')
     return await getPrivateKeyForWallet(walletHash, 'bch', 'mainnet')
