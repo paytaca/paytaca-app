@@ -7,8 +7,15 @@ import { Capacitor } from '@capacitor/core';
 import { Device } from '@capacitor/device';
 import Watchtower from 'watchtower-cash-js';
 import { Platform } from 'quasar'
-import axios from 'axios';
 import { Store } from 'src/store';
+import { NOTIFS_URL } from 'src/utils/engagementhub-utils/api'
+import {
+  buildHubSubscribePayload,
+  buildHubUnsubscribePayload,
+  buildWatchtowerSubscribePayload,
+  reconcileHubSubscriptions,
+  updateSubscriptionSnapshot
+} from 'src/utils/push-subscription-reconcile'
 
 
 const PushNotificationSettings = registerPlugin('PushNotificationSettings');
@@ -341,38 +348,58 @@ class PushNotificationsManager {
       }
     }
 
-    const data = {
-      wallet_hashes: walletHashes,
-      gcm_device: undefined,
-      apns_device: undefined,
-    }
-    if (pruneUnlisted && walletHashes?.length) data.prune_unlisted = true
     const deviceInfo = {
       registration_id: this.registrationToken,
       device_id: this.deviceId,
     }
 
+    let devicePayload = {}
     const platform = Capacitor.getPlatform()
     if (platform === 'ios') {
-      data.apns_device = deviceInfo
+      devicePayload = { apns_device: deviceInfo }
     } else if (platform === 'android') {
-      const _device_id = BigInt('0x' + deviceInfo.device_id)
-      deviceInfo.device_id = _device_id.toString()
-      data.gcm_device = deviceInfo
+      devicePayload = {
+        gcm_device: {
+          ...deviceInfo,
+          device_id: BigInt('0x' + deviceInfo.device_id).toString()
+        }
+      }
     }
 
+    const watchtowerData = buildWatchtowerSubscribePayload(walletHashes, devicePayload, pruneUnlisted)
     const response = await this.watchtower.BCH._api.post(
       '/push-notifications/subscribe/',
-      data,
+      watchtowerData,
     )
 
-    await axios.post(
-      `${process.env.ENGAGEMENT_HUB_URL}devicenotif/subscribe/`,
-      data
-    )
+    const deviceTarget = this.getDeviceTarget()
+    await reconcileHubSubscriptions({
+      walletHashes,
+      pruneUnlisted,
+      deviceId: this.deviceId,
+      subscribeOne: (walletHash) => NOTIFS_URL.post(
+        'subscribe/',
+        buildHubSubscribePayload(walletHash, devicePayload),
+        { signWithWallet: walletHash }
+      ),
+      unsubscribeOne: deviceTarget
+        ? (walletHash) => NOTIFS_URL.post(
+            'unsubscribe/',
+            buildHubUnsubscribePayload(walletHash, deviceTarget),
+            { signWithWallet: walletHash }
+          )
+        : undefined,
+    })
 
     this.subscriptionInfo = response?.data
     return response
+  }
+
+  getDeviceTarget() {
+    const platform = Capacitor.getPlatform()
+    if (platform === 'ios') return { apns_device_id: this.deviceId }
+    if (platform === 'android') return { gcm_device_id: BigInt('0x' + this.deviceId).toString() }
+    return null
   }
 
   async unsubscribe(walletHashes) {
@@ -380,18 +407,12 @@ class PushNotificationsManager {
 
     if (!this.deviceId) return console.log('Aborting unsubscribe, no device id')
 
-    const platform = Capacitor.getPlatform()
+    const deviceTarget = this.getDeviceTarget()
+    if (!deviceTarget) return console.log('Aborting unsubscribe, no valid platform found')
+
     const data = {
       wallet_hashes: walletHashes,
-    }
-
-    if (platform === 'ios') {
-      data.apns_device_id = this.deviceId
-    } else if (platform === 'android') {
-      const _device_id = BigInt('0x' + this.deviceId).toString()
-      data.gcm_device_id = _device_id
-    } else {
-      return console.log('Aborting unsubscribe, no valid platform found')
+      ...deviceTarget
     }
 
     const response = await this.watchtower.BCH._api.post(
@@ -399,10 +420,19 @@ class PushNotificationsManager {
       data,
     )
 
-    await axios.post(
-      `${process.env.ENGAGEMENT_HUB_URL}devicenotif/unsubscribe/`,
-      data
-    )
+    const hashes = [...new Set((walletHashes || []).filter(Boolean))]
+    for (const walletHash of hashes) {
+      try {
+        await NOTIFS_URL.post(
+          'unsubscribe/',
+          buildHubUnsubscribePayload(walletHash, deviceTarget),
+          { signWithWallet: walletHash }
+        )
+        updateSubscriptionSnapshot(this.deviceId, walletHash, false)
+      } catch (error) {
+        console.error('Push unsubscription failed:', error)
+      }
+    }
 
     console.log('Unsubscribed to push notifications', {
       data: data,

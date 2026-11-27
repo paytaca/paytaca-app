@@ -106,6 +106,14 @@ function eliteProgramHeaders () {
   return { 'X-Elite-Program-Key': process.env.ELITE_PROGRAM_API_KEY }
 }
 
+// Elite reads are scoped to the active wallet by header while the server is in
+// log mode. This is not a signature and the signing interceptor is not attached
+// to ELITEPROGRAM_URL.
+function eliteWalletHeaders () {
+  const walletHash = Store.getters['global/getWallet']('bch')?.walletHash
+  return walletHash ? { 'wallet-hash': walletHash } : {}
+}
+
 export async function getAssetsThresholds (programId = null) {
   // Throws rather than substituting a fallback. These values gate enrollment, and
   // the two assets are in different units -- the BCH one is a fiat amount in the
@@ -116,7 +124,10 @@ export async function getAssetsThresholds (programId = null) {
   return await ELITEPROGRAM_URL
     .get(
       'get_assets_min_thresholds/',
-      { params: withCurrency(programId ? { program: programId } : {}) }
+      {
+        params: withCurrency(programId ? { program: programId } : {}),
+        headers: eliteWalletHeaders()
+      }
     )
     .then(resp => {
       if (resp.status === 200) return resp.data
@@ -152,7 +163,7 @@ export async function enrollEliteProgram (walletHash, lookupKey) {
 
 export async function getEliteProgramSummaryData (id) {
   return await ELITEPROGRAM_URL
-    .get(`${id}/`, { params: withCurrency() })
+    .get(`${id}/`, { params: withCurrency(), headers: eliteWalletHeaders() })
     .then(resp => {
       if (resp.status === 200) return resp.data
       else return null
@@ -168,7 +179,8 @@ export async function getEliteProgramSummaryData (id) {
 export async function getEliteProgramTransactionsData (id, limit, offset) {
   return await ELITEPROGRAM_URL
     .get(`${id}/transactions/`, {
-      params: withCurrency({ limit, offset })
+      params: withCurrency({ limit, offset }),
+      headers: eliteWalletHeaders()
     })
     .then(resp => {
       if (resp.status === 200) return resp.data
@@ -185,7 +197,8 @@ export async function getEliteProgramTransactionsData (id, limit, offset) {
 export async function getEliteProgramTopupsData (id, limit, offset) {
   return await ELITEPROGRAM_URL
     .get(`${id}/topups/`, {
-      params: withCurrency({ limit, offset })
+      params: withCurrency({ limit, offset }),
+      headers: eliteWalletHeaders()
     })
     .then(resp => {
       if (resp.status === 200) return resp.data
@@ -201,7 +214,7 @@ export async function getEliteProgramTopupsData (id, limit, offset) {
 
 export async function getEliteProgramHistorySummaryData (id) {
   return await ELITEPROGRAM_URL
-    .get(`${id}/summary/`, { params: withCurrency() })
+    .get(`${id}/summary/`, { params: withCurrency(), headers: eliteWalletHeaders() })
     .then(resp => {
       if (resp.status === 200) return resp.data
       else return null
@@ -216,7 +229,7 @@ export async function getEliteProgramHistorySummaryData (id) {
 
 export async function getEliteProgramMonthlyStats (id) {
   return await ELITEPROGRAM_URL
-    .get(`${id}/monthly/`, { params: withCurrency() })
+    .get(`${id}/monthly/`, { params: withCurrency(), headers: eliteWalletHeaders() })
     .then(resp => {
       if (resp.status === 200) return resp.data
       else return null

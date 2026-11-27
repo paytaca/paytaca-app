@@ -3,6 +3,7 @@ import axios from 'axios'
 import { Store } from 'src/store'
 import { convertCashAddress } from 'src/wallet/chipnet'
 import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
+import { walletAuthFailure } from 'src/utils/request-signing'
 import { REWARDS_URL } from 'src/utils/engagementhub-utils/api'
 
 export const PROMO_TOKEN_CATEGORY = process.env.PROMO_TOKEN_CATEGORY
@@ -113,6 +114,27 @@ export async function getWalletTokenAddress (use0thAddressIndex=false) {
 // functions with calls to engagement hub
 // ================================
 
+/**
+ * Logs a wallet-auth rejection once, with the reason the server gave.
+ *
+ * These helpers all resolve to a falsy value so their callers can bootstrap
+ * instead of rendering an error card. That is right for a 404, but it also
+ * hides a signature refusal: the page would look like "no record yet" while
+ * every request is being rejected. Surface that, and leave the return value
+ * alone.
+ */
+function logSigningFailure (error, context) {
+  if (error?.response?.status !== 403) return
+  const { detail, isClockSkew, offsetSeconds } = walletAuthFailure(error)
+  const suffix = isClockSkew
+    ? ` (device clock is ${offsetSeconds}s off the server; check the device time)`
+    : ''
+  console.error(
+    'Wallet signature rejected on ' + context +
+    (detail ? ': ' + detail : '') + suffix
+  )
+}
+
 // ========== reusable functions ==========
 
 async function processPoints (url, data, skipAbortManager=false) {
@@ -122,7 +144,10 @@ async function processPoints (url, data, skipAbortManager=false) {
       if (response.status === 200) return response.data
       else return null
     })
-    .catch(() => { return null })
+    .catch(error => {
+      logSigningFailure(error, 'POST ' + url)
+      return null
+    })
 }
 
 /**
@@ -150,6 +175,7 @@ async function getData (url, skipAbortManager = false) {
     // teardown; neither is worth reporting. Anything else is logged, but is
     // still not fatal — the caller falls back to bootstrapping.
     if (error?.response?.status !== 404 && !isCanceledError(error)) {
+      logSigningFailure(error, 'GET ' + url)
       console.error('Failed to GET ' + url + ': ' + describeError(error))
     }
     return {}
@@ -162,6 +188,7 @@ async function createData (url, data = {}) {
     .then(response => { return response.data })
     .catch(error => {
       if (!isCanceledError(error)) {
+        logSigningFailure(error, 'POST ' + url)
         console.error('Failed to POST ' + url + ': ' + describeError(error))
       }
       return null
@@ -177,6 +204,7 @@ async function updateData (url, data, skipAbortManager = false) {
     })
     .catch(error => {
       if (!isCanceledError(error)) {
+        logSigningFailure(error, 'PATCH ' + url)
         console.error('Failed to PATCH ' + url + ': ' + describeError(error))
       }
       return null
@@ -193,6 +221,7 @@ async function postFetchData (url, data) {
     })
     .catch(error => {
       if (!isCanceledError(error)) {
+        logSigningFailure(error, 'POST ' + url)
         console.error('Failed to POST ' + url + ': ' + describeError(error))
       }
       // These callers surface their own error state on a falsy result, so only

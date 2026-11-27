@@ -5,11 +5,11 @@ import { getWalletHash } from 'src/utils/engagementhub-utils/shared'
 import { getWalletByNetwork } from 'src/wallet/chipnet'
 import { getChangeAddress } from 'src/utils/send-page-utils'
 import { sendNftGenesis } from 'src/utils/engagementhub-utils/token-genesis'
+import { LIFTTOKEN_URL } from 'src/utils/engagementhub-utils/api'
 
 import axios from 'axios'
 import { hash160, hash256 } from 'bitauth-libauth-v3'
 import Watchtower from "watchtower-cash-js"
-import { requestManager } from 'src/utils/request-manager'
 
 import VestingContractArtifact from 'src/cashscripts/lift-token/VestingContractv3.json'
 
@@ -45,11 +45,6 @@ export function appendLiftErrorRef(message, errorCode) {
   const ref = LIFT_ERROR_REF[errorCode] ?? 'LIFT-00' // fallback code for generic/unspecified errors
   return `${message} (${ref})`
 }
-
-const ENGAGEMENT_HUB_URL =
-  process.env.ENGAGEMENT_HUB_URL || 'https://engagementhub.paytaca.com/api/'
-const LIFTTOKEN_URL = axios.create({ baseURL: `${ENGAGEMENT_HUB_URL}lifttoken/` })
-requestManager.attachTo(LIFTTOKEN_URL)
 
 const ORACLE_PUBKEY =
   process.env.ORACLE_PUBKEY_USD ||

@@ -85,7 +85,12 @@ module.exports = defineConfig((ctx) => {
       devtool: 'eval-cheap-source-map',
 
       // Read environment variables from .env file
-      env: require('dotenv').config().parsed,
+      env: {
+        ...require('dotenv').config().parsed,
+        // Always define the signing kill switch, so `process.env.WALLET_REQUEST_SIGNING`
+        // resolves in the bundle even when a build's .env omits it.
+        WALLET_REQUEST_SIGNING: process.env.WALLET_REQUEST_SIGNING ?? 'true'
+      },
 
       // transpile: false,
 
