@@ -237,7 +237,12 @@
           <q-skeleton v-for="i in 3" height="3.25rem"/>
         </div>
         <template v-else v-for="posDevice in posDevices" :key="posDevice?.posid">
-          <q-item dense>
+          <q-item
+            dense
+            clickable
+            v-ripple
+            @click="openPosDeviceActionsSheet(posDevice)"
+          >
             <q-item-section>
               <q-item-label class="text-subtitle1">
                 {{ posDevice?.name || 'POSID' }} #{{ padPosId(posDevice?.posid) }}
@@ -246,7 +251,12 @@
                 <q-icon name="store" size="1.25em" class="q-mr-xs"/>
                 {{ merchantBranch(posDevice?.branchId)?.name }}
               </q-item-label>
-              <q-item-label v-if="posDevice?.isLinked?.()" class="row items-center text-subtitle2 text-grey">
+              <q-item-label
+                v-if="posDevice?.isLinked?.()"
+                class="row items-center text-subtitle2 text-grey"
+                :class="{ 'cursor-pointer': posDevice?.linkedDevice?.isSuspended || posDevice?.linkedDevice?.unlinkRequest?.id }"
+                @click="onDeviceStatusClick($event, posDevice)"
+              >
                 <q-icon v-if="posDevice?.linkedDevice?.unlinkRequest?.id" name="phonelink_erase" size="1.25em" class="q-mr-xs" />
                 <q-icon v-else-if="posDevice?.linkedDevice?.isSuspended" name="phonelink_lock" size="1.25em" class="q-mr-xs"/>
                 <q-icon v-else name="phone_iphone" size="1.25em" class="q-mr-xs"/>
@@ -264,111 +274,11 @@
               </q-item-label>
             </q-item-section>
             <q-item-section side>
-              <q-btn icon="more_vert" flat>
-                <q-menu>
-                  <q-list style="min-width: 100px" class="pt-card" :class="getDarkModeClass(darkMode, '', 'text-black')">
-                    <q-item
-                      clickable
-                      v-close-popup
-                      @click="displayDeviceSalesReportDialog(posDevice)"
-                    >
-                      <q-item-section>
-                        <q-item-label>{{ $t('SalesReport', {}, 'Sales Report') }}</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                    <q-item
-                      clickable
-                      v-close-popup
-                      @click="updatePosDevice(posDevice)"
-                    >
-                      <q-item-section>
-                        <q-item-label>
-                          {{ $t('Update', {}, 'Update') }}
-                        </q-item-label>
-                      </q-item-section>
-                    </q-item>
-                    <q-item
-                      v-if="posDevice?.isLinked?.() && posDevice?.linkedDevice?.unlinkRequest?.id"
-                      clickable
-                      v-close-popup
-                      @click="confirmCancelUnlinkPosDevice(posDevice)"
-                    >
-                      <q-item-section>
-                        <q-item-label>
-                          {{ $t('Cancel', {}, 'Cancel') }}
-                          {{ $t('Unlink', {}, 'Unlink').toLowerCase() }}
-                        </q-item-label>
-                      </q-item-section>
-                    </q-item>
-                    <q-item
-                      v-else-if="posDevice?.isLinked?.()"
-                      clickable
-                      v-close-popup
-                      :disabled="posDevice?.linkedDevice?.unlinkRequest?.id"
-                      @click="confirmUnlinkPosDevice(posDevice)">
-                      <q-item-section>
-                        <q-item-label>{{ $t('Unlink', {}, 'Unlink') }}</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                    <q-item
-                      v-else
-                      clickable
-                      v-close-popup
-                      @click="openLinkDeviceDialog(posDevice)">
-                      <q-item-section>
-                        <q-item-label>{{ $t('Link', {}, 'Link') }}</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                    <q-item
-                      clickable
-                      v-close-popup
-                      :disable="!posDevice?.branchId"
-                      @click="openMarketplaceInviteDialog(posDevice)"
-                    >
-                      <q-item-section>
-                        <q-item-label>
-                          {{ $t('CreateMarketplaceAdminInviteLink', {}, 'Create marketplace admin link') }}
-                        </q-item-label>
-                      </q-item-section>
-                    </q-item>
-                    <q-item
-                      v-if="!posDevice?.isNFCPaymentsEnabled?.() && posDevice?.isLinked?.()"
-                      clickable
-                      v-close-popup
-                      @click="enableNFCPayments(posDevice)">
-                      <q-item-section>
-                        <q-item-label>
-                            Enable NFC Payments
-                        </q-item-label>
-                      </q-item-section>
-                    </q-item>
-                    <q-item
-                      v-if="posDevice?.isLinked?.()"
-                      clickable
-                      v-close-popup
-                      @click="updateDeviceSuspension(posDevice, !posDevice?.linkedDevice?.isSuspended)">
-                      <q-item-section>
-                        <q-item-label>
-                          <template v-if="posDevice?.linkedDevice?.isSuspended">
-                            {{ $t('UnsuspendDevice', {}, 'Unsuspend device') }}
-                          </template>
-                          <template v-else>
-                            {{ $t('SuspendDevice', {}, 'Suspend device') }}
-                          </template>
-                        </q-item-label>
-                      </q-item-section>
-                    </q-item>
-                    <q-item
-                      clickable
-                      v-close-popup
-                      @click="confirmRemovePosDevice(posDevice)">
-                      <q-item-section>
-                        <q-item-label>{{ $t('Remove') }}</q-item-label>
-                      </q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-menu>
-              </q-btn>
+              <q-btn
+                icon="more_vert"
+                flat
+                @click.stop="openPosDeviceActionsSheet(posDevice)"
+              />
             </q-item-section>
           </q-item>
           <q-separator :color="darkMode ? 'white' : 'grey-7'" spaced inset/>
@@ -417,6 +327,20 @@
       :wallet-hash="walletData?.walletHash"
       :pos-device="salesReportDialog.posDevice"
       :merchant-id="merchantId"
+    />
+    <PosDeviceActionsSheet
+      v-model="posDeviceActionsSheet.show"
+      :pos-device="actionSheetPosDevice"
+      :dark-mode="darkMode"
+      @sales-report="displayDeviceSalesReportDialog(actionSheetPosDevice)"
+      @edit="updatePosDevice(actionSheetPosDevice)"
+      @cancel-unlink="confirmCancelUnlinkPosDevice(actionSheetPosDevice)"
+      @unlink="confirmUnlinkPosDevice(actionSheetPosDevice)"
+      @link="openLinkDeviceDialog(actionSheetPosDevice)"
+      @create-admin-invite="openMarketplaceInviteDialog(actionSheetPosDevice)"
+      @enable-nfc="enableNFCPayments(actionSheetPosDevice)"
+      @toggle-suspension="updateDeviceSuspension(actionSheetPosDevice, !actionSheetPosDevice?.linkedDevice?.isSuspended)"
+      @remove="confirmRemovePosDevice(actionSheetPosDevice)"
     />
     <q-dialog v-model="marketplaceInviteDialog.show" @hide="resetMarketplaceInviteDialog">
       <q-card
@@ -529,6 +453,7 @@ import MerchantTokenOptionsFormDialog from 'src/components/paytacapos/MerchantTo
 import PosDeviceFormDialog from 'src/components/paytacapos/PosDeviceFormDialog.vue'
 import { loadWallet } from 'src/wallet'
 import PosDeviceLinkDialog from 'src/components/paytacapos/PosDeviceLinkDialog.vue'
+import PosDeviceActionsSheet from 'src/components/paytacapos/PosDeviceActionsSheet.vue'
 import SalesReportDialog from 'src/components/paytacapos/SalesReportDialog.vue'
 import Watchtower from 'watchtower-cash-js'
 import { RpcWebSocketClient } from 'rpc-websocket-client';
@@ -891,6 +816,27 @@ function openLinkDeviceDialog(posDevice) {
     }
   })
     .onDismiss(() => refetchPosDevice(posDevice))
+}
+
+const posDeviceActionsSheet = ref({ show: false, device: null })
+
+const actionSheetPosDevice = computed(() => {
+  const device = posDeviceActionsSheet.value.device
+  if (!device) return null
+  const liveDevice = posDevices.value.find(item =>
+    item?.walletHash === device?.walletHash && item?.posid === device?.posid
+  )
+  return liveDevice || device
+})
+
+function openPosDeviceActionsSheet(posDevice) {
+  hidePopups()
+  posDeviceActionsSheet.value = { show: true, device: posDevice }
+}
+
+function onDeviceStatusClick (evt, posDevice) {
+  const hasStatusDetails = posDevice?.linkedDevice?.isSuspended || posDevice?.linkedDevice?.unlinkRequest?.id
+  if (hasStatusDetails) evt.stopPropagation()
 }
 
 const marketplaceInviteDialog = ref({
@@ -1528,6 +1474,7 @@ function hidePopups() {
   showMerchantInfoDialog.value = false
   branchFormDialog.value.show = false
   salesReportDialog.value.show = false
+  posDeviceActionsSheet.value.show = false
 }
 
 
